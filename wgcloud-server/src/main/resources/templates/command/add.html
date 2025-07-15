@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>创建指令任务</title>
+    <link rel="stylesheet" href="/AdminLTE/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/AdminLTE/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="/AdminLTE/plugins/bootstrap-switch/css/bootstrap3/bootstrap-switch.min.css">
+    <link rel="stylesheet" href="/AdminLTE/plugins/select2/css/select2.min.css">
+    <link rel="stylesheet" href="/AdminLTE/plugins/daterangepicker/daterangepicker.css">
+    <style>
+        .required { color: red; }
+        .form-help { font-size: 12px; color: #6c757d; }
+        .host-selection { border: 1px solid #ced4da; padding: 10px; border-radius: 4px; }
+        .host-item { 
+            display: inline-block; 
+            margin: 2px; 
+            padding: 4px 8px; 
+            background-color: #007bff; 
+            color: white; 
+            border-radius: 3px; 
+            font-size: 12px;
+        }
+        .host-item .remove { 
+            margin-left: 5px; 
+            cursor: pointer; 
+            font-weight: bold; 
+        }
+    </style>
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
+    <!-- 引入通用的侧边栏 -->
+    <div th:replace="common/aside :: aside"></div>
+
+    <!-- Content Wrapper -->
+    <div class="content-wrapper">
+        <!-- Content Header -->
+        <div class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-6">
+                        <h1 class="m-0">创建指令任务</h1>
+                    </div>
+                    <div class="col-sm-6">
+                        <ol class="breadcrumb float-sm-right">
+                            <li class="breadcrumb-item"><a href="/index">首页</a></li>
+                            <li class="breadcrumb-item"><a href="/command/list">指令下发</a></li>
+                            <li class="breadcrumb-item active">创建任务</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <section class="content">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">任务信息</h3>
+                            </div>
+                            <form action="/command/save" method="post" id="commandForm">
+                                <div class="card-body">
+                                    <!-- 提示信息 -->
+                                    <div class="alert alert-danger alert-dismissible" th:if="${error}">
+                                        <button type="button" class="close" data-dismiss="alert">&times;</button>
+                                        <span th:text="${error}"></span>
+                                    </div>
+
+                                    <div class="row">
+                                        <!-- 左侧表单 -->
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="commandName">指令名称 <span class="required">*</span></label>
+                                                <input type="text" class="form-control" id="commandName" name="commandName" 
+                                                       placeholder="请输入指令名称" required maxlength="100">
+                                                <small class="form-help">给此指令任务起一个有意义的名称</small>
+                                            </div>
+
+                                            <div class="form-group">
+                                                <label for="description">任务描述</label>
+                                                <textarea class="form-control" id="description" name="description" 
+                                                          rows="3" placeholder="请输入任务描述" maxlength="500"></textarea>
+                                                <small class="form-help">描述此任务的用途和注意事项</small>
+                                            </div>
+
+                                            <div class="form-group">
+                                                <label for="taskType">执行方式 <span class="required">*</span></label>
+                                                <select class="form-control" id="taskType" name="taskType" onchange="toggleScheduledTime()">
+                                                    <option value="immediate">立即执行</option>
+                                                    <option value="scheduled">定时执行</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="form-group" id="scheduledTimeGroup" style="display: none;">
+                                                <label for="scheduledTime">定时执行时间</label>
+                                                <input type="text" class="form-control" id="scheduledTime" name="scheduledTime" 
+                                                       placeholder="请选择执行时间">
+                                                <small class="form-help">格式：yyyy-MM-dd HH:mm:ss</small>
+                                            </div>
+
+                                            <div class="form-group">
+                                                <label for="timeoutSeconds">超时时间（秒）</label>
+                                                <input type="number" class="form-control" id="timeoutSeconds" name="timeoutSeconds" 
+                                                       value="300" min="30" max="3600">
+                                                <small class="form-help">指令执行超时时间，范围：30-3600秒</small>
+                                            </div>
+                                        </div>
+
+                                        <!-- 右侧表单 -->
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="commandContent">指令内容 <span class="required">*</span></label>
+                                                <textarea class="form-control" id="commandContent" name="commandContent" 
+                                                          rows="8" placeholder="请输入要执行的指令内容" required></textarea>
+                                                <small class="form-help">支持shell命令、脚本等，每行一个命令</small>
+                                            </div>
+
+                                            <div class="form-group">
+                                                <label>目标主机选择</label>
+                                                <div class="card">
+                                                    <div class="card-body p-2">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="targetType" 
+                                                                   id="targetAll" value="all" checked onchange="changeTargetType()">
+                                                            <label class="form-check-label" for="targetAll">
+                                                                所有在线主机
+                                                            </label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="targetType" 
+                                                                   id="targetSpecific" value="specific" onchange="changeTargetType()">
+                                                            <label class="form-check-label" for="targetSpecific">
+                                                                指定主机
+                                                            </label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="targetType" 
+                                                                   id="targetByTag" value="tag" onchange="changeTargetType()">
+                                                            <label class="form-check-label" for="targetByTag">
+                                                                按标签选择
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- 指定主机选择 -->
+                                            <div class="form-group" id="specificHostsGroup" style="display: none;">
+                                                <label>选择主机</label>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control" id="hostInput" 
+                                                           placeholder="输入主机IP或主机名">
+                                                    <div class="input-group-append">
+                                                        <button type="button" class="btn btn-primary" onclick="addHost()">添加</button>
+                                                        <button type="button" class="btn btn-info" onclick="loadOnlineHosts()">获取在线主机</button>
+                                                    </div>
+                                                </div>
+                                                <div class="host-selection mt-2" id="selectedHosts">
+                                                    <!-- 选中的主机将显示在这里 -->
+                                                </div>
+                                                <input type="hidden" name="targetHosts" id="targetHostsInput">
+                                            </div>
+
+                                            <!-- 标签选择 -->
+                                            <div class="form-group" id="tagSelectionGroup" style="display: none;">
+                                                <label>选择标签</label>
+                                                <select class="form-control select2" id="tagSelect" multiple="multiple" 
+                                                        data-placeholder="选择标签">
+                                                    <option value="production">生产环境</option>
+                                                    <option value="testing">测试环境</option>
+                                                    <option value="development">开发环境</option>
+                                                    <option value="database">数据库服务器</option>
+                                                    <option value="web">Web服务器</option>
+                                                    <option value="cache">缓存服务器</option>
+                                                </select>
+                                                <input type="hidden" name="targetTags" id="targetTagsInput">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card-footer">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> 创建并执行
+                                    </button>
+                                    <a href="/command/list" class="btn btn-default ml-2">
+                                        <i class="fas fa-arrow-left"></i> 返回列表
+                                    </a>
+                                    <button type="button" class="btn btn-info ml-2" onclick="validateCommand()">
+                                        <i class="fas fa-check"></i> 验证指令
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 引入通用的页脚 -->
+    <div th:replace="common/dashViewFooter :: dashViewFooter"></div>
+</div>
+
+<!-- 在线主机选择模态框 -->
+<div class="modal fade" id="onlineHostsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">选择在线主机</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <input type="text" class="form-control" id="hostFilter" placeholder="筛选主机..." 
+                           onkeyup="filterHosts()">
+                </div>
+                <div id="onlineHostsList" class="host-list">
+                    <!-- 在线主机列表将通过AJAX加载 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="addSelectedHosts()">添加选中</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 引入通用的JS -->
+<script src="/AdminLTE/plugins/jquery/jquery.min.js"></script>
+<script src="/AdminLTE/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/AdminLTE/dist/js/adminlte.min.js"></script>
+<script src="/AdminLTE/plugins/select2/js/select2.full.min.js"></script>
+<script src="/AdminLTE/plugins/moment/moment.min.js"></script>
+<script src="/AdminLTE/plugins/daterangepicker/daterangepicker.js"></script>
+<script src="/AdminLTE/plugins/bootstrap-switch/js/bootstrap-switch.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        // 初始化Select2
+        $('.select2').select2();
+        
+        // 初始化日期时间选择器
+        $('#scheduledTime').daterangepicker({
+            singleDatePicker: true,
+            timePicker: true,
+            timePicker24Hour: true,
+            timePickerIncrement: 1,
+            locale: {
+                format: 'YYYY-MM-DD HH:mm:ss'
+            }
+        });
+        
+        // 监听标签选择变化
+        $('#tagSelect').on('change', function() {
+            var selectedTags = $(this).val();
+            $('#targetTagsInput').val(JSON.stringify(selectedTags || []));
+        });
+    });
+
+    var selectedHosts = [];
+
+    function toggleScheduledTime() {
+        var taskType = $('#taskType').val();
+        if (taskType === 'scheduled') {
+            $('#scheduledTimeGroup').show();
+            $('#scheduledTime').attr('required', true);
+        } else {
+            $('#scheduledTimeGroup').hide();
+            $('#scheduledTime').removeAttr('required');
+        }
+    }
+
+    function changeTargetType() {
+        var targetType = $('input[name="targetType"]:checked').val();
+        
+        $('#specificHostsGroup').hide();
+        $('#tagSelectionGroup').hide();
+        
+        if (targetType === 'specific') {
+            $('#specificHostsGroup').show();
+        } else if (targetType === 'tag') {
+            $('#tagSelectionGroup').show();
+        }
+    }
+
+    function addHost() {
+        var hostInput = $('#hostInput');
+        var hostname = hostInput.val().trim();
+        
+        if (hostname === '') {
+            alert('请输入主机名或IP地址');
+            return;
+        }
+        
+        if (selectedHosts.indexOf(hostname) !== -1) {
+            alert('主机已存在');
+            return;
+        }
+        
+        selectedHosts.push(hostname);
+        updateSelectedHostsDisplay();
+        hostInput.val('');
+        $('#targetHostsInput').val(JSON.stringify(selectedHosts));
+    }
+
+    function removeHost(hostname) {
+        var index = selectedHosts.indexOf(hostname);
+        if (index !== -1) {
+            selectedHosts.splice(index, 1);
+            updateSelectedHostsDisplay();
+            $('#targetHostsInput').val(JSON.stringify(selectedHosts));
+        }
+    }
+
+    function updateSelectedHostsDisplay() {
+        var container = $('#selectedHosts');
+        container.empty();
+        
+        selectedHosts.forEach(function(host) {
+            var hostItem = $('<span class="host-item">' + host + 
+                           '<span class="remove" onclick="removeHost(\'' + host + '\')">&times;</span></span>');
+            container.append(hostItem);
+        });
+    }
+
+    function loadOnlineHosts() {
+        $.ajax({
+            url: '/command/getOnlineHosts',
+            type: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    var hostsList = $('#onlineHostsList');
+                    hostsList.empty();
+                    
+                    response.hosts.forEach(function(host) {
+                        var checkbox = $('<div class="form-check">' +
+                                       '<input class="form-check-input" type="checkbox" value="' + host + '" id="host_' + host + '">' +
+                                       '<label class="form-check-label" for="host_' + host + '">' + host + '</label>' +
+                                       '</div>');
+                        hostsList.append(checkbox);
+                    });
+                    
+                    $('#onlineHostsModal').modal('show');
+                } else {
+                    alert('获取在线主机失败：' + response.message);
+                }
+            },
+            error: function() {
+                alert('获取在线主机失败');
+            }
+        });
+    }
+
+    function filterHosts() {
+        var filter = $('#hostFilter').val().toLowerCase();
+        $('#onlineHostsList .form-check').each(function() {
+            var text = $(this).text().toLowerCase();
+            if (text.indexOf(filter) === -1) {
+                $(this).hide();
+            } else {
+                $(this).show();
+            }
+        });
+    }
+
+    function addSelectedHosts() {
+        $('#onlineHostsList input:checked').each(function() {
+            var hostname = $(this).val();
+            if (selectedHosts.indexOf(hostname) === -1) {
+                selectedHosts.push(hostname);
+            }
+        });
+        
+        updateSelectedHostsDisplay();
+        $('#targetHostsInput').val(JSON.stringify(selectedHosts));
+        $('#onlineHostsModal').modal('hide');
+    }
+
+    function validateCommand() {
+        var command = $('#commandContent').val();
+        if (command.trim() === '') {
+            alert('请输入指令内容');
+            return;
+        }
+        
+        // 这里可以添加指令验证逻辑
+        alert('指令验证通过');
+    }
+
+    // 表单提交前验证
+    $('#commandForm').on('submit', function(e) {
+        var commandName = $('#commandName').val().trim();
+        var commandContent = $('#commandContent').val().trim();
+        
+        if (commandName === '' || commandContent === '') {
+            e.preventDefault();
+            alert('请填写必填项');
+            return false;
+        }
+        
+        var targetType = $('input[name="targetType"]:checked').val();
+        if (targetType === 'specific' && selectedHosts.length === 0) {
+            e.preventDefault();
+            alert('请至少选择一台目标主机');
+            return false;
+        }
+        
+        if (targetType === 'tag' && $('#tagSelect').val().length === 0) {
+            e.preventDefault();
+            alert('请至少选择一个标签');
+            return false;
+        }
+        
+        return true;
+    });
+</script>
+
+</body>
+</html> 

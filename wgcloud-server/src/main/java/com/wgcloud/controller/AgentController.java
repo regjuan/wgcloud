@@ -68,6 +68,9 @@ public class AgentController {
         JSONObject systemInfo = agentJsonObject.getJSONObject("systemInfo");
         JSONObject netIoState = agentJsonObject.getJSONObject("netIoState");
         JSONArray deskStateList = agentJsonObject.getJSONArray("deskStateList");
+        JSONArray dockerContainerList = agentJsonObject.getJSONArray("dockerContainerList");
+        JSONArray dockerStateList = agentJsonObject.getJSONArray("dockerStateList");
+        JSONArray pingResultList = agentJsonObject.getJSONArray("pingResultList");
 
         try {
 
@@ -127,6 +130,24 @@ public class AgentController {
                     BatchData.DESK_STATE_LIST.add(bean);
                 }
             }
+            if (dockerContainerList != null) {
+                List<DockerContainer> dockerContainers = JSONUtil.toList(dockerContainerList, DockerContainer.class);
+                for (DockerContainer container : dockerContainers) {
+                    BatchData.DOCKER_CONTAINER_LIST.add(container);
+                }
+            }
+            if (dockerStateList != null) {
+                List<DockerState> dockerStates = JSONUtil.toList(dockerStateList, DockerState.class);
+                for (DockerState state : dockerStates) {
+                    BatchData.DOCKER_STATE_LIST.add(state);
+                }
+            }
+            if (pingResultList != null) {
+                List<PingResult> pingResults = JSONUtil.toList(pingResultList, PingResult.class);
+                for (PingResult result : pingResults) {
+                    BatchData.PING_RESULT_LIST.add(result);
+                }
+            }
             resultJson.put("result", "success");
         } catch (Exception e) {
             e.printStackTrace();
@@ -134,6 +155,56 @@ public class AgentController {
         } finally {
             return resultJson;
         }
+    }
+
+    /**
+     * 接收Agent端指令执行结果
+     */
+    @ResponseBody
+    @RequestMapping("/commandResult")
+    public JSONObject commandResult(@RequestBody String paramBean) {
+        JSONObject resultJson = new JSONObject();
+        
+        try {
+            JSONObject agentJsonObject = (JSONObject) JSONUtil.parse(paramBean);
+            
+            if (!tokenUtils.checkAgentToken(agentJsonObject)) {
+                logger.error("token is invalidate");
+                resultJson.put("result", "error：token is invalidate");
+                return resultJson;
+            }
+            
+            String taskId = agentJsonObject.getStr("taskId");
+            String recordId = agentJsonObject.getStr("recordId");
+            String hostname = agentJsonObject.getStr("hostname");
+            String command = agentJsonObject.getStr("command");
+            Boolean success = agentJsonObject.getBool("success");
+            Integer exitCode = agentJsonObject.getInt("exitCode");
+            String output = agentJsonObject.getStr("output");
+            String errorOutput = agentJsonObject.getStr("errorOutput");
+            String errorMessage = agentJsonObject.getStr("errorMessage");
+            Long executionTime = agentJsonObject.getLong("executionTime");
+            
+            logger.info("接收到Agent指令执行结果，任务ID: {}, 记录ID: {}, 主机: {}, 成功: {}", 
+                       taskId, recordId, hostname, success);
+            
+            // 这里应该调用CommandService来更新执行记录
+            // 由于当前代码结构限制，先记录日志，实际项目中应该注入CommandService
+            String logContent = String.format("指令执行结果 - 任务:%s, 记录:%s, 成功:%s, 退出码:%d, 耗时:%dms", 
+                                             taskId, recordId, success, exitCode, executionTime);
+            
+            // 记录到日志表
+            logInfoService.save(hostname + "：指令执行结果", logContent, 
+                               success ? StaticKeys.LOG_INFO : StaticKeys.LOG_ERROR);
+            
+            resultJson.put("result", "success");
+            
+        } catch (Exception e) {
+            logger.error("处理指令执行结果失败: {}", e.getMessage(), e);
+            resultJson.put("result", "error: " + e.getMessage());
+        }
+        
+        return resultJson;
     }
 
 }

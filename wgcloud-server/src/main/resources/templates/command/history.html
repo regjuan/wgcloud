@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>指令执行历史记录</title>
+    <link rel="stylesheet" href="/AdminLTE/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/AdminLTE/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="/AdminLTE/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
+    <style>
+        .status-success { color: #28a745; }
+        .status-failed { color: #dc3545; }
+        .status-timeout { color: #fd7e14; }
+        .status-pending { color: #ffc107; }
+        .status-running { color: #007bff; }
+        .result-content { 
+            max-height: 200px; 
+            overflow-y: auto; 
+            background-color: #f8f9fa; 
+            padding: 8px; 
+            border: 1px solid #dee2e6; 
+            border-radius: 4px; 
+            font-family: monospace; 
+            font-size: 12px;
+        }
+        .task-summary {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .progress-chart {
+            height: 30px;
+        }
+    </style>
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
+    <!-- 引入通用的侧边栏 -->
+    <div th:replace="common/aside :: aside"></div>
+
+    <!-- Content Wrapper -->
+    <div class="content-wrapper">
+        <!-- Content Header -->
+        <div class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-6">
+                        <h1 class="m-0">指令执行历史记录</h1>
+                    </div>
+                    <div class="col-sm-6">
+                        <ol class="breadcrumb float-sm-right">
+                            <li class="breadcrumb-item"><a href="/index">首页</a></li>
+                            <li class="breadcrumb-item"><a href="/command/list">指令下发</a></li>
+                            <li class="breadcrumb-item active">执行历史</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <section class="content">
+            <div class="container-fluid">
+                <!-- 任务概要信息 -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">任务概要</h3>
+                                <div class="card-tools">
+                                    <a th:href="@{/command/list}" class="btn btn-default btn-sm">
+                                        <i class="fas fa-arrow-left"></i> 返回列表
+                                    </a>
+                                    <a th:href="@{/command/view/{id}(id=${commandTask.id})}" class="btn btn-info btn-sm">
+                                        <i class="fas fa-eye"></i> 查看详情
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="task-summary" th:if="${commandTask}">
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <h5 th:text="${commandTask.commandName}"></h5>
+                                            <p class="text-muted" th:text="${commandTask.description}" th:if="${commandTask.description}"></p>
+                                            <div class="row">
+                                                <div class="col-sm-6">
+                                                    <strong>创建时间：</strong>
+                                                    <span th:text="${#dates.format(commandTask.createTime, 'yyyy-MM-dd HH:mm:ss')}"></span>
+                                                </div>
+                                                <div class="col-sm-6">
+                                                    <strong>下发时间：</strong>
+                                                    <span th:text="${#dates.format(commandTask.deployTime, 'yyyy-MM-dd HH:mm:ss')}" 
+                                                          th:if="${commandTask.deployTime}"></span>
+                                                    <span th:unless="${commandTask.deployTime}">-</span>
+                                                </div>
+                                                <div class="col-sm-6">
+                                                    <strong>创建人：</strong>
+                                                    <span th:text="${commandTask.creator}"></span>
+                                                </div>
+                                                <div class="col-sm-6">
+                                                    <strong>任务状态：</strong>
+                                                    <span th:class="'badge badge-' + 
+                                                        ${commandTask.status == 'pending' ? 'warning' : 
+                                                         commandTask.status == 'deploying' ? 'info' :
+                                                         commandTask.status == 'completed' ? 'success' :
+                                                         commandTask.status == 'failed' ? 'danger' : 'warning'}"
+                                                          th:text="${commandTask.status == 'pending' ? '等待执行' : 
+                                                                   commandTask.status == 'deploying' ? '部署中' :
+                                                                   commandTask.status == 'completed' ? '已完成' :
+                                                                   commandTask.status == 'failed' ? '执行失败' : '部分成功'}">
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="progress-chart">
+                                                <div class="info-box">
+                                                    <span class="info-box-icon bg-info"><i class="fas fa-tasks"></i></span>
+                                                    <div class="info-box-content">
+                                                        <span class="info-box-text">执行进度</span>
+                                                        <span class="info-box-number" th:text="${commandTask.executedCount} + '/' + ${commandTask.totalCount}"></span>
+                                                        <div class="progress">
+                                                            <div class="progress-bar" 
+                                                                 th:style="'width: ' + ${commandTask.totalCount > 0 ? (commandTask.executedCount * 100 / commandTask.totalCount) : 0} + '%'"></div>
+                                                        </div>
+                                                        <span class="progress-description" 
+                                                              th:text="'完成率: ' + ${commandTask.totalCount > 0 ? 
+                                                                      #numbers.formatDecimal((commandTask.executedCount * 100.0 / commandTask.totalCount), 1, 1) : 0} + '%'"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 指令内容 -->
+                                    <div class="mt-3">
+                                        <strong>指令内容：</strong>
+                                        <div class="result-content mt-2" th:text="${commandTask.commandContent}"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 搜索表单 -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">筛选条件</h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-card-tool" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <form method="get" th:action="@{/command/history/{taskId}(taskId=${commandTask.id})}">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>主机名/IP</label>
+                                                <input type="text" class="form-control" name="hostname" 
+                                                       th:value="${hostname}" placeholder="请输入主机名或IP">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>执行状态</label>
+                                                <select class="form-control" name="status">
+                                                    <option value="">全部</option>
+                                                    <option value="success" th:selected="${status == 'success'}">执行成功</option>
+                                                    <option value="failed" th:selected="${status == 'failed'}">执行失败</option>
+                                                    <option value="timeout" th:selected="${status == 'timeout'}">执行超时</option>
+                                                    <option value="pending" th:selected="${status == 'pending'}">等待执行</option>
+                                                    <option value="running" th:selected="${status == 'running'}">执行中</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>&nbsp;</label>
+                                                <div>
+                                                    <button type="submit" class="btn btn-primary">
+                                                        <i class="fas fa-search"></i> 搜索
+                                                    </button>
+                                                    <a th:href="@{/command/history/{taskId}(taskId=${commandTask.id})}" class="btn btn-default">
+                                                        <i class="fas fa-undo"></i> 重置
+                                                    </a>
+                                                    <button type="button" class="btn btn-success" onclick="refreshRecords()">
+                                                        <i class="fas fa-refresh"></i> 刷新
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 执行记录列表 -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">执行记录</h3>
+                                <div class="card-tools">
+                                    <span class="badge badge-info">共 <span th:text="${pageUtil.totalCount}"></span> 条记录</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <!-- 提示信息 -->
+                                <div class="alert alert-danger alert-dismissible" th:if="${error}">
+                                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                                    <span th:text="${error}"></span>
+                                </div>
+
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-striped">
+                                        <thead>
+                                        <tr>
+                                            <th>序号</th>
+                                            <th>主机信息</th>
+                                            <th>执行状态</th>
+                                            <th>执行时间</th>
+                                            <th>执行耗时</th>
+                                            <th>退出码</th>
+                                            <th>操作</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <tr th:each="record,iterStat : ${pageUtil.list}" th:if="${pageUtil.list}">
+                                            <td th:text="${iterStat.count + (pageUtil.currPage - 1) * pageUtil.pageSize}"></td>
+                                            <td>
+                                                <strong th:text="${record.hostname}"></strong>
+                                                <br>
+                                                <small class="text-muted" th:text="${record.hostDescription}" th:if="${record.hostDescription}"></small>
+                                            </td>
+                                            <td>
+                                                <span th:class="'badge badge-' + 
+                                                    ${record.status == 'success' ? 'success' : 
+                                                     record.status == 'failed' ? 'danger' :
+                                                     record.status == 'timeout' ? 'warning' :
+                                                     record.status == 'pending' ? 'secondary' : 'info'}"
+                                                      th:text="${record.status == 'success' ? '执行成功' : 
+                                                               record.status == 'failed' ? '执行失败' :
+                                                               record.status == 'timeout' ? '执行超时' :
+                                                               record.status == 'pending' ? '等待执行' : '执行中'}">
+                                                </span>
+                                                <br>
+                                                <small class="text-muted" th:if="${record.retryCount > 0}">
+                                                    重试 <span th:text="${record.retryCount}"></span> 次
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <strong>开始：</strong>
+                                                    <span th:text="${#dates.format(record.executeTime, 'MM-dd HH:mm:ss')}" 
+                                                          th:if="${record.executeTime}"></span>
+                                                </div>
+                                                <div th:if="${record.completeTime}">
+                                                    <strong>完成：</strong>
+                                                    <span th:text="${#dates.format(record.completeTime, 'MM-dd HH:mm:ss')}"></span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span th:if="${record.executionTime != null and record.executionTime > 0}">
+                                                    <span th:text="${#numbers.formatDecimal(record.executionTime / 1000.0, 1, 2)}"></span>秒
+                                                </span>
+                                                <span th:unless="${record.executionTime != null and record.executionTime > 0}">-</span>
+                                            </td>
+                                            <td>
+                                                <span th:if="${record.exitCode != null}" 
+                                                      th:class="${record.exitCode == 0 ? 'text-success' : 'text-danger'}"
+                                                      th:text="${record.exitCode}"></span>
+                                                <span th:unless="${record.exitCode != null}">-</span>
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn btn-info btn-xs" 
+                                                        th:onclick="'showExecutionDetail(\'' + ${record.id} + '\')'">
+                                                    <i class="fas fa-eye"></i> 查看详情
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr th:unless="${pageUtil.list}">
+                                            <td colspan="7" class="text-center">暂无执行记录</td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- 分页 -->
+                                <div th:replace="common/chart :: pageDiv"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 引入通用的页脚 -->
+    <div th:replace="common/dashViewFooter :: dashViewFooter"></div>
+</div>
+
+<!-- 执行详情模态框 -->
+<div class="modal fade" id="executionDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">执行详情</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="detailContent">
+                    <!-- 详情内容将通过AJAX加载 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 引入通用的JS -->
+<script src="/AdminLTE/plugins/jquery/jquery.min.js"></script>
+<script src="/AdminLTE/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/AdminLTE/dist/js/adminlte.min.js"></script>
+
+<script>
+    function showExecutionDetail(recordId) {
+        // 模拟获取执行详情
+        var detailHtml = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>基本信息</h6>
+                    <table class="table table-sm">
+                        <tr><td>记录ID：</td><td>` + recordId + `</td></tr>
+                        <tr><td>主机名：</td><td>192.168.1.100</td></tr>
+                        <tr><td>执行状态：</td><td><span class="badge badge-success">执行成功</span></td></tr>
+                        <tr><td>退出码：</td><td>0</td></tr>
+                        <tr><td>执行耗时：</td><td>2.35秒</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6>时间信息</h6>
+                    <table class="table table-sm">
+                        <tr><td>创建时间：</td><td>2024-01-16 10:30:15</td></tr>
+                        <tr><td>开始执行：</td><td>2024-01-16 10:30:16</td></tr>
+                        <tr><td>执行完成：</td><td>2024-01-16 10:30:18</td></tr>
+                        <tr><td>最后更新：</td><td>2024-01-16 10:30:18</td></tr>
+                    </table>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-12">
+                    <h6>执行的指令</h6>
+                    <div class="result-content">echo "Hello World"
+ls -la /tmp
+ps aux | grep java</div>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-12">
+                    <h6>执行结果</h6>
+                    <div class="result-content">Hello World
+total 24
+drwxrwxrwt  15 root root 4096 Jan 16 10:30 .
+drwxr-xr-x  20 root root 4096 Jan 15 09:15 ..
+-rw-------   1 user user    0 Jan 16 10:25 .tmpfile
+root      1234  0.1  2.3 2345678 123456 ?   Sl   Jan15   1:23 java -jar app.jar</div>
+                </div>
+            </div>
+            <div class="row mt-3" style="display: none;">
+                <div class="col-12">
+                    <h6>错误信息</h6>
+                    <div class="result-content text-danger"><!-- 错误信息 --></div>
+                </div>
+            </div>
+        `;
+        
+        $('#detailContent').html(detailHtml);
+        $('#executionDetailModal').modal('show');
+    }
+
+    function refreshRecords() {
+        location.reload();
+    }
+
+    // 自动刷新功能
+    var autoRefresh = false;
+    var refreshInterval;
+
+    function toggleAutoRefresh() {
+        if (autoRefresh) {
+            clearInterval(refreshInterval);
+            autoRefresh = false;
+            $('#autoRefreshBtn').text('开启自动刷新');
+        } else {
+            refreshInterval = setInterval(function() {
+                refreshRecords();
+            }, 30000); // 30秒刷新一次
+            autoRefresh = true;
+            $('#autoRefreshBtn').text('关闭自动刷新');
+        }
+    }
+
+    // 页面加载完成后的初始化
+    $(document).ready(function() {
+        // 如果有执行中的任务，可以启用自动刷新
+        var hasRunningTasks = $('span.badge-info').length > 0;
+        if (hasRunningTasks) {
+            // toggleAutoRefresh();
+        }
+    });
+</script>
+
+</body>
+</html> 

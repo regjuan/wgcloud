@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wgcloud.mapper.PingTaskMapper">
+
+    <resultMap id="BaseResultMap" type="com.wgcloud.entity.PingTask">
+        <id column="id" property="id" jdbcType="VARCHAR"/>
+        <result column="task_name" property="taskName" jdbcType="VARCHAR"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="ip_list" property="ipList" jdbcType="VARCHAR"/>
+        <result column="ping_interval" property="pingInterval" jdbcType="INTEGER"/>
+        <result column="timeout" property="timeout" jdbcType="INTEGER"/>
+        <result column="record_all_results" property="recordAllResults" jdbcType="BOOLEAN"/>
+        <result column="is_enabled" property="isEnabled" jdbcType="BOOLEAN"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="tags" property="tags" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, task_name, description, ip_list, ping_interval, timeout, 
+        record_all_results, is_enabled, create_time, update_time, tags
+    </sql>
+
+    <!-- 插入PING任务 -->
+    <insert id="save" parameterType="com.wgcloud.entity.PingTask">
+        INSERT INTO ping_task
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="taskName != null">task_name,</if>
+            <if test="description != null">description,</if>
+            <if test="ipList != null">ip_list,</if>
+            <if test="pingInterval != null">ping_interval,</if>
+            <if test="timeout != null">timeout,</if>
+            <if test="recordAllResults != null">record_all_results,</if>
+            <if test="isEnabled != null">is_enabled,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="tags != null">tags,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id,jdbcType=VARCHAR},</if>
+            <if test="taskName != null">#{taskName,jdbcType=VARCHAR},</if>
+            <if test="description != null">#{description,jdbcType=VARCHAR},</if>
+            <if test="ipList != null">#{ipList,jdbcType=VARCHAR},</if>
+            <if test="pingInterval != null">#{pingInterval,jdbcType=INTEGER},</if>
+            <if test="timeout != null">#{timeout,jdbcType=INTEGER},</if>
+            <if test="recordAllResults != null">#{recordAllResults,jdbcType=BOOLEAN},</if>
+            <if test="isEnabled != null">#{isEnabled,jdbcType=BOOLEAN},</if>
+            <if test="createTime != null">#{createTime,jdbcType=TIMESTAMP},</if>
+            <if test="updateTime != null">#{updateTime,jdbcType=TIMESTAMP},</if>
+            <if test="tags != null">#{tags,jdbcType=VARCHAR},</if>
+        </trim>
+    </insert>
+
+    <!-- 更新PING任务 -->
+    <update id="updateById" parameterType="com.wgcloud.entity.PingTask">
+        UPDATE ping_task
+        <set>
+            <if test="taskName != null">task_name = #{taskName,jdbcType=VARCHAR},</if>
+            <if test="description != null">description = #{description,jdbcType=VARCHAR},</if>
+            <if test="ipList != null">ip_list = #{ipList,jdbcType=VARCHAR},</if>
+            <if test="pingInterval != null">ping_interval = #{pingInterval,jdbcType=INTEGER},</if>
+            <if test="timeout != null">timeout = #{timeout,jdbcType=INTEGER},</if>
+            <if test="recordAllResults != null">record_all_results = #{recordAllResults,jdbcType=BOOLEAN},</if>
+            <if test="isEnabled != null">is_enabled = #{isEnabled,jdbcType=BOOLEAN},</if>
+            <if test="updateTime != null">update_time = #{updateTime,jdbcType=TIMESTAMP},</if>
+            <if test="tags != null">tags = #{tags,jdbcType=VARCHAR},</if>
+        </set>
+        WHERE id = #{id,jdbcType=VARCHAR}
+    </update>
+
+    <!-- 根据ID删除 -->
+    <delete id="deleteById" parameterType="java.lang.String">
+        DELETE FROM ping_task WHERE id = #{id,jdbcType=VARCHAR}
+    </delete>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM ping_task
+        WHERE id = #{id,jdbcType=VARCHAR}
+    </select>
+
+    <!-- 查询所有启用的任务 -->
+    <select id="selectAllEnabled" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM ping_task
+        WHERE is_enabled = 1
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 分页查询 -->
+    <select id="selectByPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM ping_task
+        <where>
+            <if test="taskName != null and taskName != ''">
+                AND task_name LIKE CONCAT('%', #{taskName}, '%')
+            </if>
+            <if test="isEnabled != null">
+                AND is_enabled = #{isEnabled}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        LIMIT #{pageStart}, #{pageSize}
+    </select>
+
+    <!-- 计算总记录数 -->
+    <select id="countByPage" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM ping_task
+        <where>
+            <if test="taskName != null and taskName != ''">
+                AND task_name LIKE CONCAT('%', #{taskName}, '%')
+            </if>
+            <if test="isEnabled != null">
+                AND is_enabled = #{isEnabled}
+            </if>
+        </where>
+    </select>
+
+    <!-- 更新任务状态 -->
+    <update id="updateTaskStatus">
+        UPDATE ping_task 
+        SET is_enabled = #{isEnabled,jdbcType=BOOLEAN}, 
+            update_time = NOW() 
+        WHERE id = #{id,jdbcType=VARCHAR}
+    </update>
+
+</mapper> 

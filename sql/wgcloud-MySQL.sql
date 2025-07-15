@@ -295,3 +295,111 @@ CREATE TABLE `TCP_STATE` (
   PRIMARY KEY (`ID`),
   KEY `TCP_ACC_HOST_INDEX` (`HOST_NAME`,`CREATE_TIME`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Table structure for ping_task
+-- ----------------------------
+DROP TABLE IF EXISTS `ping_task`;
+CREATE TABLE `ping_task` (
+  `id` varchar(36) NOT NULL COMMENT '主键ID',
+  `task_name` varchar(100) NOT NULL COMMENT '任务名称',
+  `description` varchar(500) DEFAULT NULL COMMENT '任务描述',
+  `ip_list` text NOT NULL COMMENT 'IP列表，逗号分隔',
+  `ping_interval` int NOT NULL DEFAULT 60 COMMENT 'PING间隔（秒）',
+  `timeout` int NOT NULL DEFAULT 5000 COMMENT '超时时间（毫秒）',
+  `record_all_results` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否记录所有结果（0：仅失败，1：全部）',
+  `is_enabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT '是否启用（0：禁用，1：启用）',
+  `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `tags` varchar(500) DEFAULT NULL COMMENT '标签，JSON格式',
+  PRIMARY KEY (`id`),
+  KEY `idx_task_name` (`task_name`),
+  KEY `idx_enabled` (`is_enabled`),
+  KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='PING监控任务表';
+
+-- ----------------------------
+-- Table structure for ping_result
+-- ----------------------------
+DROP TABLE IF EXISTS `ping_result`;
+CREATE TABLE `ping_result` (
+  `id` varchar(36) NOT NULL COMMENT '主键ID',
+  `task_id` varchar(36) NOT NULL COMMENT 'PING任务ID',
+  `target_ip` varchar(45) NOT NULL COMMENT '目标IP地址',
+  `is_reachable` tinyint(1) NOT NULL COMMENT '是否可达（0：不可达，1：可达）',
+  `response_time` bigint NOT NULL DEFAULT 0 COMMENT '响应时间（毫秒）',
+  `packet_loss` decimal(5,2) NOT NULL DEFAULT 0.00 COMMENT '丢包率（百分比）',
+  `ping_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'PING时间',
+  `error_message` varchar(500) DEFAULT NULL COMMENT '错误信息',
+  PRIMARY KEY (`id`),
+  KEY `idx_task_id` (`task_id`),
+  KEY `idx_target_ip` (`target_ip`),
+  KEY `idx_ping_time` (`ping_time`),
+  KEY `idx_is_reachable` (`is_reachable`),
+  KEY `idx_task_ping_time` (`task_id`, `ping_time`),
+  CONSTRAINT `fk_ping_result_task` FOREIGN KEY (`task_id`) REFERENCES `ping_task` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='PING监控结果表';
+
+-- ----------------------------
+-- Table structure for command_task
+-- ----------------------------
+DROP TABLE IF EXISTS `command_task`;
+CREATE TABLE `command_task` (
+  `id` varchar(36) NOT NULL COMMENT '主键ID',
+  `command_name` varchar(100) NOT NULL COMMENT '指令名称',
+  `command_content` text NOT NULL COMMENT '指令内容',
+  `status` varchar(20) NOT NULL DEFAULT 'pending' COMMENT '任务状态：pending-等待执行，deploying-部署中，completed-已完成，failed-执行失败，partial-部分成功',
+  `executed_count` int NOT NULL DEFAULT 0 COMMENT '已执行数量',
+  `total_count` int NOT NULL DEFAULT 0 COMMENT '总下发数量',
+  `deploy_time` timestamp NULL DEFAULT NULL COMMENT '下发时间',
+  `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `target_tags` text COMMENT '目标标签（JSON格式存储）',
+  `target_hosts` text COMMENT '目标主机列表（JSON格式存储）',
+  `task_type` varchar(20) NOT NULL DEFAULT 'immediate' COMMENT '任务类型：immediate-立即执行，scheduled-定时执行',
+  `scheduled_time` timestamp NULL DEFAULT NULL COMMENT '预定执行时间（定时任务用）',
+  `timeout_seconds` int NOT NULL DEFAULT 300 COMMENT '超时时间（秒）',
+  `creator` varchar(50) NOT NULL COMMENT '创建人',
+  `description` varchar(500) DEFAULT NULL COMMENT '任务描述',
+  `result_summary` text COMMENT '执行结果摘要',
+  PRIMARY KEY (`id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_creator` (`creator`),
+  KEY `idx_create_time` (`create_time`),
+  KEY `idx_deploy_time` (`deploy_time`),
+  KEY `idx_task_type` (`task_type`),
+  KEY `idx_scheduled_time` (`scheduled_time`),
+  KEY `idx_command_name` (`command_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='指令下发任务表';
+
+-- ----------------------------
+-- Table structure for command_execution_record
+-- ----------------------------
+DROP TABLE IF EXISTS `command_execution_record`;
+CREATE TABLE `command_execution_record` (
+  `id` varchar(36) NOT NULL COMMENT '主键ID',
+  `command_task_id` varchar(36) NOT NULL COMMENT '指令任务ID',
+  `hostname` varchar(100) NOT NULL COMMENT '主机IP或主机名',
+  `host_description` varchar(200) DEFAULT NULL COMMENT '主机描述',
+  `command_content` text NOT NULL COMMENT '下发指令内容',
+  `execute_time` timestamp NULL DEFAULT NULL COMMENT '指令下发时间',
+  `complete_time` timestamp NULL DEFAULT NULL COMMENT '执行完成时间',
+  `status` varchar(20) NOT NULL DEFAULT 'pending' COMMENT '执行状态：success-成功，failed-失败，timeout-超时，pending-等待执行，running-执行中',
+  `result` text COMMENT '指令执行结果',
+  `error_message` text COMMENT '错误信息',
+  `execution_time` bigint DEFAULT NULL COMMENT '执行耗时（毫秒）',
+  `exit_code` int DEFAULT NULL COMMENT '退出码',
+  `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `retry_count` int NOT NULL DEFAULT 0 COMMENT '重试次数',
+  `executor_info` varchar(100) DEFAULT NULL COMMENT '执行节点信息',
+  PRIMARY KEY (`id`),
+  KEY `idx_task_id` (`command_task_id`),
+  KEY `idx_hostname` (`hostname`),
+  KEY `idx_status` (`status`),
+  KEY `idx_execute_time` (`execute_time`),
+  KEY `idx_create_time` (`create_time`),
+  KEY `idx_task_status` (`command_task_id`, `status`),
+  KEY `idx_task_hostname` (`command_task_id`, `hostname`),
+  CONSTRAINT `fk_command_record_task` FOREIGN KEY (`command_task_id`) REFERENCES `command_task` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='指令执行记录表';

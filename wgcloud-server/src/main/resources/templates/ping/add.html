@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PING任务管理</title>
+    <link rel="stylesheet" href="/AdminLTE/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/AdminLTE/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="/AdminLTE/plugins/select2/css/select2.min.css">
+    <link rel="stylesheet" href="/AdminLTE/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css">
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
+    <!-- 引入通用的侧边栏 -->
+    <div th:replace="common/aside :: aside"></div>
+
+    <!-- Content Wrapper -->
+    <div class="content-wrapper">
+        <!-- Content Header -->
+        <div class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-6">
+                        <h1 class="m-0" id="pageTitle">添加PING监测任务</h1>
+                    </div>
+                    <div class="col-sm-6">
+                        <ol class="breadcrumb float-sm-right">
+                            <li class="breadcrumb-item"><a href="/index">首页</a></li>
+                            <li class="breadcrumb-item"><a href="/ping/list">PING监测</a></li>
+                            <li class="breadcrumb-item active" id="breadcrumbTitle">添加任务</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <section class="content">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card card-primary">
+                            <div class="card-header">
+                                <h3 class="card-title" id="cardTitle">任务配置</h3>
+                            </div>
+
+                            <form id="taskForm">
+                                <input type="hidden" id="taskId" name="id">
+                                
+                                <div class="card-body">
+                                    <!-- 基本信息 -->
+                                    <div class="form-group">
+                                        <label for="taskName">任务名称 <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="taskName" name="taskName" 
+                                               placeholder="请输入任务名称" required maxlength="100">
+                                        <small class="form-text text-muted">建议使用有意义的名称，便于管理</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="description">任务描述</label>
+                                        <textarea class="form-control" id="description" name="description" rows="3" 
+                                                  placeholder="请输入任务描述，可选" maxlength="500"></textarea>
+                                    </div>
+
+                                    <!-- IP配置 -->
+                                    <div class="form-group">
+                                        <label for="ipList">监测IP列表 <span class="text-danger">*</span></label>
+                                        <textarea class="form-control" id="ipList" name="ipList" rows="4" 
+                                                  placeholder="请输入要监测的IP地址，多个IP用逗号分隔&#10;例如：192.168.1.1,8.8.8.8,114.114.114.114" 
+                                                  required></textarea>
+                                        <small class="form-text text-muted">
+                                            支持IPv4地址，多个IP用逗号分隔。支持域名自动解析为IP。
+                                        </small>
+                                    </div>
+
+                                    <!-- 监测配置 -->
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="pingInterval">监测间隔 (秒) <span class="text-danger">*</span></label>
+                                                <input type="number" class="form-control" id="pingInterval" name="pingInterval" 
+                                                       value="60" min="10" max="3600" required>
+                                                <small class="form-text text-muted">建议设置为60秒以上</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="timeout">超时时间 (毫秒) <span class="text-danger">*</span></label>
+                                                <input type="number" class="form-control" id="timeout" name="timeout" 
+                                                       value="5000" min="1000" max="30000" required>
+                                                <small class="form-text text-muted">推荐5000毫秒</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 记录配置 -->
+                                    <div class="form-group">
+                                        <label>结果记录策略</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="recordAllResults" 
+                                                   id="recordFailureOnly" value="false" checked>
+                                            <label class="form-check-label" for="recordFailureOnly">
+                                                仅记录失败结果 (推荐)
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="recordAllResults" 
+                                                   id="recordAllResults" value="true">
+                                            <label class="form-check-label" for="recordAllResults">
+                                                记录所有结果 (包括成功和失败)
+                                            </label>
+                                        </div>
+                                        <small class="form-text text-muted">
+                                            仅记录失败结果可以节省存储空间，推荐用于长期监测
+                                        </small>
+                                    </div>
+
+                                    <!-- 状态配置 -->
+                                    <div class="form-group">
+                                        <div class="custom-control custom-switch">
+                                            <input type="checkbox" class="custom-control-input" id="isEnabled" name="isEnabled" checked>
+                                            <label class="custom-control-label" for="isEnabled">启用任务</label>
+                                        </div>
+                                        <small class="form-text text-muted">
+                                            启用后任务将立即开始监测，禁用后停止监测但保留配置
+                                        </small>
+                                    </div>
+
+                                    <!-- 标签配置 -->
+                                    <div class="form-group">
+                                        <label for="tags">标签</label>
+                                        <input type="text" class="form-control" id="tags" name="tags" 
+                                               placeholder="请输入标签，多个标签用逗号分隔，例如：生产环境,核心服务">
+                                        <small class="form-text text-muted">用于分类和快速筛选任务</small>
+                                    </div>
+                                </div>
+
+                                <div class="card-footer">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> 保存
+                                    </button>
+                                    <button type="button" class="btn btn-secondary ml-2" onclick="goBack()">
+                                        <i class="fas fa-arrow-left"></i> 返回
+                                    </button>
+                                    <button type="button" class="btn btn-info ml-2" onclick="testConfiguration()" id="testBtn">
+                                        <i class="fas fa-network-wired"></i> 测试配置
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- 右侧帮助信息 -->
+                    <div class="col-md-4">
+                        <div class="card card-info">
+                            <div class="card-header">
+                                <h3 class="card-title">配置说明</h3>
+                            </div>
+                            <div class="card-body">
+                                <h6><i class="fas fa-info-circle"></i> IP列表格式</h6>
+                                <p class="text-sm">
+                                    支持以下格式：<br>
+                                    • IPv4地址：192.168.1.1<br>
+                                    • 域名：www.baidu.com<br>
+                                    • 多个地址用逗号分隔
+                                </p>
+
+                                <h6><i class="fas fa-clock"></i> 监测间隔</h6>
+                                <p class="text-sm">
+                                    • 最小值：10秒<br>
+                                    • 推荐值：60秒<br>
+                                    • 间隔过短可能影响性能
+                                </p>
+
+                                <h6><i class="fas fa-database"></i> 存储策略</h6>
+                                <p class="text-sm">
+                                    • 仅失败：节省空间，适合长期监测<br>
+                                    • 全部结果：便于分析，适合短期诊断
+                                </p>
+
+                                <h6><i class="fas fa-tags"></i> 标签用途</h6>
+                                <p class="text-sm">
+                                    使用标签可以更好地组织和管理监测任务，支持按标签筛选和分组。
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 测试结果显示区域 -->
+                        <div class="card card-success" id="testResultCard" style="display: none;">
+                            <div class="card-header">
+                                <h3 class="card-title">测试结果</h3>
+                            </div>
+                            <div class="card-body" id="testResultBody">
+                                <!-- 测试结果将在这里显示 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 引入通用的页脚 -->
+    <div th:replace="common/footer :: footer"></div>
+</div>
+
+<!-- jQuery -->
+<script src="/AdminLTE/plugins/jquery/jquery.min.js"></script>
+<!-- Bootstrap 4 -->
+<script src="/AdminLTE/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- Select2 -->
+<script src="/AdminLTE/plugins/select2/js/select2.full.min.js"></script>
+<!-- AdminLTE App -->
+<script src="/AdminLTE/dist/js/adminlte.min.js"></script>
+
+<script>
+let isEditMode = false;
+let currentTaskId = null;
+
+$(document).ready(function() {
+    // 检查是否为编辑模式
+    const pathSegments = window.location.pathname.split('/');
+    if (pathSegments.length > 3 && pathSegments[2] === 'edit') {
+        isEditMode = true;
+        currentTaskId = pathSegments[3];
+        loadTaskData();
+    }
+    
+    // 表单提交处理
+    $('#taskForm').on('submit', function(e) {
+        e.preventDefault();
+        saveTask();
+    });
+    
+    // IP列表验证
+    $('#ipList').on('blur', function() {
+        validateIpList();
+    });
+});
+
+// 加载任务数据（编辑模式）
+function loadTaskData() {
+    if (!currentTaskId) return;
+    
+    $.ajax({
+        url: '/ping/get/' + currentTaskId,
+        type: 'GET',
+        success: function(response) {
+            if (response.success) {
+                const task = response.data;
+                populateForm(task);
+                updatePageTitle('编辑PING监测任务');
+            } else {
+                alert('加载任务数据失败: ' + response.message);
+                goBack();
+            }
+        },
+        error: function() {
+            alert('服务器连接失败');
+            goBack();
+        }
+    });
+}
+
+// 填充表单数据
+function populateForm(task) {
+    $('#taskId').val(task.id);
+    $('#taskName').val(task.taskName);
+    $('#description').val(task.description);
+    $('#ipList').val(task.ipList);
+    $('#pingInterval').val(task.pingInterval);
+    $('#timeout').val(task.timeout);
+    
+    if (task.recordAllResults) {
+        $('#recordAllResults').prop('checked', true);
+    } else {
+        $('#recordFailureOnly').prop('checked', true);
+    }
+    
+    $('#isEnabled').prop('checked', task.isEnabled);
+    $('#tags').val(task.tags);
+}
+
+// 更新页面标题
+function updatePageTitle(title) {
+    $('#pageTitle').text(title);
+    $('#breadcrumbTitle').text(isEditMode ? '编辑任务' : '添加任务');
+    $('#cardTitle').text(isEditMode ? '编辑任务配置' : '任务配置');
+}
+
+// 验证IP列表
+function validateIpList() {
+    const ipList = $('#ipList').val().trim();
+    if (!ipList) return false;
+    
+    const ips = ipList.split(',').map(ip => ip.trim()).filter(ip => ip);
+    let isValid = true;
+    
+    for (let ip of ips) {
+        // 简单的IP和域名验证
+        const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+        const domainPattern = /^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/;
+        
+        if (!ipPattern.test(ip) && !domainPattern.test(ip)) {
+            isValid = false;
+            break;
+        }
+    }
+    
+    if (!isValid) {
+        $('#ipList').addClass('is-invalid');
+        return false;
+    } else {
+        $('#ipList').removeClass('is-invalid');
+        return true;
+    }
+}
+
+// 保存任务
+function saveTask() {
+    if (!validateForm()) return;
+    
+    const formData = {
+        id: $('#taskId').val(),
+        taskName: $('#taskName').val(),
+        description: $('#description').val(),
+        ipList: $('#ipList').val(),
+        pingInterval: parseInt($('#pingInterval').val()),
+        timeout: parseInt($('#timeout').val()),
+        recordAllResults: $('input[name="recordAllResults"]:checked').val() === 'true',
+        isEnabled: $('#isEnabled').is(':checked'),
+        tags: $('#tags').val()
+    };
+    
+    const url = isEditMode ? '/ping/update' : '/ping/create';
+    
+    $.ajax({
+        url: url,
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(formData),
+        success: function(response) {
+            if (response.success) {
+                alert(isEditMode ? '任务更新成功' : '任务创建成功');
+                goBack();
+            } else {
+                alert((isEditMode ? '任务更新失败: ' : '任务创建失败: ') + response.message);
+            }
+        },
+        error: function() {
+            alert('服务器连接失败');
+        }
+    });
+}
+
+// 表单验证
+function validateForm() {
+    let isValid = true;
+    
+    // 清除之前的验证状态
+    $('.form-control').removeClass('is-invalid');
+    
+    // 验证任务名称
+    if (!$('#taskName').val().trim()) {
+        $('#taskName').addClass('is-invalid');
+        isValid = false;
+    }
+    
+    // 验证IP列表
+    if (!validateIpList()) {
+        isValid = false;
+    }
+    
+    // 验证监测间隔
+    const interval = parseInt($('#pingInterval').val());
+    if (isNaN(interval) || interval < 10 || interval > 3600) {
+        $('#pingInterval').addClass('is-invalid');
+        isValid = false;
+    }
+    
+    // 验证超时时间
+    const timeout = parseInt($('#timeout').val());
+    if (isNaN(timeout) || timeout < 1000 || timeout > 30000) {
+        $('#timeout').addClass('is-invalid');
+        isValid = false;
+    }
+    
+    if (!isValid) {
+        alert('请检查表单中的错误信息');
+    }
+    
+    return isValid;
+}
+
+// 测试配置
+function testConfiguration() {
+    if (!validateForm()) return;
+    
+    const testData = {
+        ipList: $('#ipList').val(),
+        timeout: parseInt($('#timeout').val())
+    };
+    
+    $('#testBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> 测试中...');
+    $('#testResultCard').hide();
+    
+    $.ajax({
+        url: '/ping/testConfig',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(testData),
+        success: function(response) {
+            displayTestResult(response);
+        },
+        error: function() {
+            alert('测试失败，请检查网络连接');
+        },
+        complete: function() {
+            $('#testBtn').prop('disabled', false).html('<i class="fas fa-network-wired"></i> 测试配置');
+        }
+    });
+}
+
+// 显示测试结果
+function displayTestResult(response) {
+    const resultBody = $('#testResultBody');
+    resultBody.empty();
+    
+    if (response.success && response.data) {
+        const results = response.data;
+        let html = '<div class="table-responsive"><table class="table table-sm">';
+        html += '<thead><tr><th>IP地址</th><th>状态</th><th>响应时间</th></tr></thead><tbody>';
+        
+        results.forEach(result => {
+            const statusClass = result.isReachable ? 'text-success' : 'text-danger';
+            const statusText = result.isReachable ? '可达' : '不可达';
+            const responseTime = result.isReachable ? result.responseTime + 'ms' : '-';
+            
+            html += `<tr>
+                <td>${result.targetIp}</td>
+                <td><span class="${statusClass}">${statusText}</span></td>
+                <td>${responseTime}</td>
+            </tr>`;
+        });
+        
+        html += '</tbody></table></div>';
+        resultBody.html(html);
+    } else {
+        resultBody.html('<div class="alert alert-danger">测试失败: ' + (response.message || '未知错误') + '</div>');
+    }
+    
+    $('#testResultCard').show();
+}
+
+// 返回列表页
+function goBack() {
+    window.location.href = '/ping/list';
+}
+</script>
+</body>
+</html> 

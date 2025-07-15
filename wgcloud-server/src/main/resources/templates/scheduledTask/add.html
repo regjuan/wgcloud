@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>新增计划任务 - WGCLOUD</title>
+    <link rel="stylesheet" href="/static/AdminLTE/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/static/AdminLTE/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="/static/common/code.css">
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
+
+    <!-- 头部导航 -->
+    <div th:replace="common/header::header"></div>
+
+    <!-- 侧边栏 -->
+    <div th:replace="common/aside::aside"></div>
+
+    <!-- 主内容区域 -->
+    <div class="content-wrapper">
+        <!-- 内容头部 -->
+        <div class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-6">
+                        <h1 class="m-0">新增计划任务</h1>
+                    </div>
+                    <div class="col-sm-6">
+                        <ol class="breadcrumb float-sm-right">
+                            <li class="breadcrumb-item"><a href="/dashboard">首页</a></li>
+                            <li class="breadcrumb-item"><a href="/scheduledTask/list">计划任务管理</a></li>
+                            <li class="breadcrumb-item active">新增任务</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主要内容 -->
+        <section class="content">
+            <div class="container-fluid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">任务信息</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="taskForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="taskName">任务名称 <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="taskName" name="taskName" 
+                                               placeholder="请输入任务名称" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="hostname">目标主机IP <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="hostname" name="hostname" 
+                                               placeholder="请输入目标主机IP" required>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="cronExpression">Cron表达式 <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="cronExpression" name="cronExpression" 
+                                                   placeholder="例如：0 0 2 * * ?" required>
+                                            <div class="input-group-append">
+                                                <button type="button" class="btn btn-outline-secondary" onclick="validateCron()">
+                                                    验证
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <small class="form-text text-muted">
+                                            常用示例：每天2点(0 0 2 * * ?)，每小时(0 0 * * * ?)，每10分钟(0 */10 * * * ?)
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="timeoutSeconds">超时时间(秒)</label>
+                                        <input type="number" class="form-control" id="timeoutSeconds" name="timeoutSeconds" 
+                                               value="300" min="1" max="3600">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="maxRetryCount">最大重试次数</label>
+                                        <input type="number" class="form-control" id="maxRetryCount" name="maxRetryCount" 
+                                               value="3" min="0" max="10">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="command">执行指令 <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="command" name="command" rows="4" 
+                                          placeholder="请输入要执行的指令，支持多行命令" required></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="description">任务描述</label>
+                                <textarea class="form-control" id="description" name="description" rows="3" 
+                                          placeholder="请输入任务描述（可选）"></textarea>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="tags">标签</label>
+                                        <input type="text" class="form-control" id="tags" name="tags" 
+                                               placeholder="多个标签用逗号分隔，例如：备份,清理,监控">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="creator">创建人</label>
+                                        <input type="text" class="form-control" id="creator" name="creator" 
+                                               value="admin" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="enabled" name="enabled" checked>
+                                    <label class="custom-control-label" for="enabled">启用任务</label>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="card-footer">
+                        <button type="button" class="btn btn-primary" onclick="saveTask()">
+                            <i class="fas fa-save"></i> 保存
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="goBack()">
+                            <i class="fas fa-arrow-left"></i> 返回
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 页脚 -->
+    <div th:replace="common/footer::footer"></div>
+</div>
+
+<!-- jQuery -->
+<script src="/static/AdminLTE/plugins/jquery/jquery.min.js"></script>
+<!-- Bootstrap 4 -->
+<script src="/static/AdminLTE/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- AdminLTE App -->
+<script src="/static/AdminLTE/dist/js/adminlte.min.js"></script>
+<!-- 自定义JS -->
+<script>
+// 验证Cron表达式
+function validateCron() {
+    var cronExpression = $('#cronExpression').val();
+    if (!cronExpression) {
+        alert('请输入Cron表达式');
+        return;
+    }
+    
+    $.post('/scheduledTask/validateCron', {
+        cronExpression: cronExpression
+    }, function(result) {
+        if (result.startsWith('success')) {
+            alert('Cron表达式格式正确');
+        } else {
+            alert(result);
+        }
+    });
+}
+
+// 保存任务
+function saveTask() {
+    // 表单验证
+    if (!validateForm()) {
+        return;
+    }
+    
+    var formData = {
+        taskName: $('#taskName').val(),
+        hostname: $('#hostname').val(),
+        cronExpression: $('#cronExpression').val(),
+        command: $('#command').val(),
+        description: $('#description').val(),
+        tags: $('#tags').val(),
+        creator: $('#creator').val(),
+        timeoutSeconds: parseInt($('#timeoutSeconds').val()),
+        maxRetryCount: parseInt($('#maxRetryCount').val()),
+        enabled: $('#enabled').is(':checked')
+    };
+    
+    $.ajax({
+        url: '/scheduledTask/save',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(formData),
+        success: function(result) {
+            if (result.startsWith('success')) {
+                alert('保存成功');
+                window.location.href = '/scheduledTask/list';
+            } else {
+                alert(result);
+            }
+        },
+        error: function() {
+            alert('保存失败，请检查网络连接');
+        }
+    });
+}
+
+// 表单验证
+function validateForm() {
+    if (!$('#taskName').val()) {
+        alert('请输入任务名称');
+        $('#taskName').focus();
+        return false;
+    }
+    
+    if (!$('#hostname').val()) {
+        alert('请输入目标主机IP');
+        $('#hostname').focus();
+        return false;
+    }
+    
+    if (!$('#cronExpression').val()) {
+        alert('请输入Cron表达式');
+        $('#cronExpression').focus();
+        return false;
+    }
+    
+    if (!$('#command').val()) {
+        alert('请输入执行指令');
+        $('#command').focus();
+        return false;
+    }
+    
+    return true;
+}
+
+// 返回列表页
+function goBack() {
+    window.location.href = '/scheduledTask/list';
+}
+
+// 页面加载完成后
+$(document).ready(function() {
+    // 设置默认创建人（这里应该从session获取当前用户）
+    // $('#creator').val('当前登录用户');
+});
+</script>
+</body>
+</html> 

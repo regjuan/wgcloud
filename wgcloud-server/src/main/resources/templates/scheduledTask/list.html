@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>计划任务管理 - WGCLOUD</title>
+    <link rel="stylesheet" href="/static/AdminLTE/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/static/AdminLTE/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="/static/AdminLTE/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
+    <link rel="stylesheet" href="/static/AdminLTE/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
+    <link rel="stylesheet" href="/static/AdminLTE/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="/static/common/code.css">
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
+
+    <!-- 头部导航 -->
+    <div th:replace="common/header::header"></div>
+
+    <!-- 侧边栏 -->
+    <div th:replace="common/aside::aside"></div>
+
+    <!-- 主内容区域 -->
+    <div class="content-wrapper">
+        <!-- 内容头部 -->
+        <div class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-6">
+                        <h1 class="m-0">计划任务管理</h1>
+                    </div>
+                    <div class="col-sm-6">
+                        <ol class="breadcrumb float-sm-right">
+                            <li class="breadcrumb-item"><a href="/dashboard">首页</a></li>
+                            <li class="breadcrumb-item active">计划任务管理</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主要内容 -->
+        <section class="content">
+            <div class="container-fluid">
+                
+                <!-- 统计卡片 -->
+                <div class="row">
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-info">
+                            <div class="inner">
+                                <h3 th:text="${statistics?.total_count ?: 0}">0</h3>
+                                <p>总任务数</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-success">
+                            <div class="inner">
+                                <h3 th:text="${statistics?.enabled_count ?: 0}">0</h3>
+                                <p>启用任务</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-play"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-warning">
+                            <div class="inner">
+                                <h3 th:text="${statistics?.running_count ?: 0}">0</h3>
+                                <p>运行中</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-running"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-danger">
+                            <div class="inner">
+                                <h3 th:text="${statistics?.failed_count ?: 0}">0</h3>
+                                <p>失败任务</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 搜索和操作区域 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">搜索条件</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <form id="searchForm" method="get" action="/scheduledTask/list">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label>任务名称</label>
+                                        <input type="text" class="form-control" name="taskName" th:value="${taskName}" placeholder="请输入任务名称">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label>主机IP</label>
+                                        <input type="text" class="form-control" name="hostname" th:value="${hostname}" placeholder="请输入主机IP">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label>执行状态</label>
+                                        <select class="form-control" name="status">
+                                            <option value="">全部</option>
+                                            <option value="pending" th:selected="${status == 'pending'}">等待中</option>
+                                            <option value="running" th:selected="${status == 'running'}">运行中</option>
+                                            <option value="success" th:selected="${status == 'success'}">成功</option>
+                                            <option value="failed" th:selected="${status == 'failed'}">失败</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label>启用状态</label>
+                                        <select class="form-control" name="enabled">
+                                            <option value="">全部</option>
+                                            <option value="true" th:selected="${enabled == true}">启用</option>
+                                            <option value="false" th:selected="${enabled == false}">禁用</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label>&nbsp;</label>
+                                        <div>
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-search"></i> 搜索
+                                            </button>
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="resetForm()">
+                                                <i class="fas fa-redo"></i> 重置
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 任务列表 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">计划任务列表</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-primary btn-sm" onclick="addTask()">
+                                <i class="fas fa-plus"></i> 新增任务
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="batchDelete()">
+                                <i class="fas fa-trash"></i> 批量删除
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="taskTable" class="table table-bordered table-striped">
+                                <thead>
+                                <tr>
+                                    <th width="30"><input type="checkbox" id="checkAll"></th>
+                                    <th>任务名称</th>
+                                    <th>主机IP</th>
+                                    <th>Cron表达式</th>
+                                    <th>执行指令</th>
+                                    <th>状态</th>
+                                    <th>启用</th>
+                                    <th>最新执行时间</th>
+                                    <th>下次执行时间</th>
+                                    <th>创建人</th>
+                                    <th>操作</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="task : ${pageInfo.list}">
+                                    <td><input type="checkbox" name="taskIds" th:value="${task.id}"></td>
+                                    <td>
+                                        <a href="javascript:void(0)" th:onclick="'viewTask(\''+${task.id}+'\')'" 
+                                           th:text="${task.taskName}" title="点击查看详情"></a>
+                                    </td>
+                                    <td th:text="${task.hostname}"></td>
+                                    <td>
+                                        <code th:text="${task.cronExpression}"></code>
+                                    </td>
+                                    <td>
+                                        <span th:if="${#strings.length(task.command) > 30}" 
+                                              th:text="${#strings.substring(task.command, 0, 30) + '...'}" 
+                                              th:title="${task.command}"></span>
+                                        <span th:if="${#strings.length(task.command) <= 30}" 
+                                              th:text="${task.command}"></span>
+                                    </td>
+                                    <td>
+                                        <span th:switch="${task.status}">
+                                            <span th:case="'pending'" class="badge badge-secondary">等待中</span>
+                                            <span th:case="'running'" class="badge badge-warning">运行中</span>
+                                            <span th:case="'success'" class="badge badge-success">成功</span>
+                                            <span th:case="'failed'" class="badge badge-danger">失败</span>
+                                            <span th:case="*" class="badge badge-secondary" th:text="${task.status}"></span>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="custom-control custom-switch">
+                                            <input type="checkbox" class="custom-control-input" 
+                                                   th:id="'enabled-'+${task.id}" 
+                                                   th:checked="${task.enabled}"
+                                                   th:onchange="'toggleEnabled(\''+${task.id}+'\', this.checked)'">
+                                            <label class="custom-control-label" th:for="'enabled-'+${task.id}"></label>
+                                        </div>
+                                    </td>
+                                    <td th:text="${#dates.format(task.lastExecuteTime, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                                    <td th:text="${#dates.format(task.nextExecuteTime, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                                    <td th:text="${task.creator}"></td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-info btn-xs" 
+                                                    th:onclick="'viewTask(\''+${task.id}+'\')'">
+                                                <i class="fas fa-eye"></i> 详情
+                                            </button>
+                                            <button type="button" class="btn btn-primary btn-xs" 
+                                                    th:onclick="'editTask(\''+${task.id}+'\')'">
+                                                <i class="fas fa-edit"></i> 编辑
+                                            </button>
+                                            <button type="button" class="btn btn-success btn-xs" 
+                                                    th:onclick="'executeTask(\''+${task.id}+'\')'">
+                                                <i class="fas fa-play"></i> 执行
+                                            </button>
+                                            <button type="button" class="btn btn-warning btn-xs" 
+                                                    th:onclick="'copyTask(\''+${task.id}+'\')'">
+                                                <i class="fas fa-copy"></i> 复制
+                                            </button>
+                                            <button type="button" class="btn btn-danger btn-xs" 
+                                                    th:onclick="'deleteTask(\''+${task.id}+'\')'">
+                                                <i class="fas fa-trash"></i> 删除
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- 分页 -->
+                        <div th:if="${pageInfo.total > 0}" class="row">
+                            <div class="col-sm-12 col-md-5">
+                                <div class="dataTables_info">
+                                    显示第 <span th:text="${pageInfo.startRow}"></span> 到 
+                                    <span th:text="${pageInfo.endRow}"></span> 条记录，
+                                    共 <span th:text="${pageInfo.total}"></span> 条记录
+                                </div>
+                            </div>
+                            <div class="col-sm-12 col-md-7">
+                                <div class="dataTables_paginate paging_simple_numbers">
+                                    <ul class="pagination">
+                                        <li class="paginate_button page-item previous" th:classappend="${!pageInfo.hasPreviousPage} ? 'disabled'">
+                                            <a href="#" class="page-link" th:onclick="'changePage(1)'">首页</a>
+                                        </li>
+                                        <li class="paginate_button page-item previous" th:classappend="${!pageInfo.hasPreviousPage} ? 'disabled'">
+                                            <a href="#" class="page-link" th:onclick="'changePage('+${pageInfo.prePage}+')'">上一页</a>
+                                        </li>
+                                        <li th:each="nav : ${pageInfo.navigatepageNums}" 
+                                            class="paginate_button page-item" 
+                                            th:classappend="${nav == pageInfo.pageNum} ? 'active'">
+                                            <a href="#" class="page-link" th:onclick="'changePage('+${nav}+')'" th:text="${nav}"></a>
+                                        </li>
+                                        <li class="paginate_button page-item next" th:classappend="${!pageInfo.hasNextPage} ? 'disabled'">
+                                            <a href="#" class="page-link" th:onclick="'changePage('+${pageInfo.nextPage}+')'">下一页</a>
+                                        </li>
+                                        <li class="paginate_button page-item next" th:classappend="${!pageInfo.hasNextPage} ? 'disabled'">
+                                            <a href="#" class="page-link" th:onclick="'changePage('+${pageInfo.pages}+')'">尾页</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 页脚 -->
+    <div th:replace="common/footer::footer"></div>
+</div>
+
+<!-- jQuery -->
+<script src="/static/AdminLTE/plugins/jquery/jquery.min.js"></script>
+<!-- Bootstrap 4 -->
+<script src="/static/AdminLTE/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- AdminLTE App -->
+<script src="/static/AdminLTE/dist/js/adminlte.min.js"></script>
+<!-- 自定义JS -->
+<script>
+$(document).ready(function() {
+    // 全选复选框
+    $('#checkAll').change(function() {
+        $('input[name="taskIds"]').prop('checked', this.checked);
+    });
+    
+    // 单个复选框
+    $('input[name="taskIds"]').change(function() {
+        var total = $('input[name="taskIds"]').length;
+        var checked = $('input[name="taskIds"]:checked').length;
+        $('#checkAll').prop('checked', total === checked);
+    });
+});
+
+// 重置表单
+function resetForm() {
+    $('#searchForm')[0].reset();
+    $('#searchForm').submit();
+}
+
+// 分页
+function changePage(page) {
+    var form = $('#searchForm');
+    $('<input>').attr({
+        type: 'hidden',
+        name: 'page',
+        value: page
+    }).appendTo(form);
+    form.submit();
+}
+
+// 新增任务
+function addTask() {
+    window.location.href = '/scheduledTask/add';
+}
+
+// 查看任务详情
+function viewTask(id) {
+    window.location.href = '/scheduledTask/view?id=' + id;
+}
+
+// 编辑任务
+function editTask(id) {
+    window.location.href = '/scheduledTask/edit?id=' + id;
+}
+
+// 立即执行任务
+function executeTask(id) {
+    if (confirm('确定要立即执行此任务吗？')) {
+        $.post('/scheduledTask/executeImmediately', {
+            id: id,
+            triggerBy: 'admin' // 这里应该从session获取当前用户
+        }, function(result) {
+            if (result.startsWith('success')) {
+                alert('任务已提交执行');
+                location.reload();
+            } else {
+                alert(result);
+            }
+        });
+    }
+}
+
+// 复制任务
+function copyTask(id) {
+    if (confirm('确定要复制此任务吗？')) {
+        $.post('/scheduledTask/copy', {
+            id: id
+        }, function(result) {
+            if (result.startsWith('success')) {
+                alert('复制任务成功');
+                location.reload();
+            } else {
+                alert(result);
+            }
+        });
+    }
+}
+
+// 删除任务
+function deleteTask(id) {
+    if (confirm('确定要删除此任务吗？删除后将无法恢复！')) {
+        $.post('/scheduledTask/del', {
+            id: id
+        }, function(result) {
+            if (result.startsWith('success')) {
+                alert('删除成功');
+                location.reload();
+            } else {
+                alert(result);
+            }
+        });
+    }
+}
+
+// 批量删除
+function batchDelete() {
+    var ids = [];
+    $('input[name="taskIds"]:checked').each(function() {
+        ids.push($(this).val());
+    });
+    
+    if (ids.length === 0) {
+        alert('请选择要删除的任务');
+        return;
+    }
+    
+    if (confirm('确定要删除选中的 ' + ids.length + ' 个任务吗？删除后将无法恢复！')) {
+        $.post('/scheduledTask/del', {
+            id: ids.join(',')
+        }, function(result) {
+            if (result.startsWith('success')) {
+                alert('批量删除成功');
+                location.reload();
+            } else {
+                alert(result);
+            }
+        });
+    }
+}
+
+// 启用/禁用任务
+function toggleEnabled(id, enabled) {
+    $.post('/scheduledTask/updateEnabled', {
+        id: id,
+        enabled: enabled
+    }, function(result) {
+        if (result.startsWith('success')) {
+            // 可以显示一个临时提示
+        } else {
+            alert(result);
+            // 恢复开关状态
+            $('#enabled-' + id).prop('checked', !enabled);
+        }
+    });
+}
+</script>
+</body>
+</html> 

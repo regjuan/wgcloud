@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wgcloud.mapper.PingResultMapper">
+
+    <resultMap id="BaseResultMap" type="com.wgcloud.entity.PingResult">
+        <id column="id" property="id" jdbcType="VARCHAR"/>
+        <result column="task_id" property="taskId" jdbcType="VARCHAR"/>
+        <result column="target_ip" property="targetIp" jdbcType="VARCHAR"/>
+        <result column="is_reachable" property="isReachable" jdbcType="BOOLEAN"/>
+        <result column="response_time" property="responseTime" jdbcType="BIGINT"/>
+        <result column="packet_loss" property="packetLoss" jdbcType="DECIMAL"/>
+        <result column="ping_time" property="pingTime" jdbcType="TIMESTAMP"/>
+        <result column="error_message" property="errorMessage" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, task_id, target_ip, is_reachable, response_time, 
+        packet_loss, ping_time, error_message
+    </sql>
+
+    <!-- 插入PING结果 -->
+    <insert id="save" parameterType="com.wgcloud.entity.PingResult">
+        INSERT INTO ping_result
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="taskId != null">task_id,</if>
+            <if test="targetIp != null">target_ip,</if>
+            <if test="isReachable != null">is_reachable,</if>
+            <if test="responseTime != null">response_time,</if>
+            <if test="packetLoss != null">packet_loss,</if>
+            <if test="pingTime != null">ping_time,</if>
+            <if test="errorMessage != null">error_message,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id,jdbcType=VARCHAR},</if>
+            <if test="taskId != null">#{taskId,jdbcType=VARCHAR},</if>
+            <if test="targetIp != null">#{targetIp,jdbcType=VARCHAR},</if>
+            <if test="isReachable != null">#{isReachable,jdbcType=BOOLEAN},</if>
+            <if test="responseTime != null">#{responseTime,jdbcType=BIGINT},</if>
+            <if test="packetLoss != null">#{packetLoss,jdbcType=DECIMAL},</if>
+            <if test="pingTime != null">#{pingTime,jdbcType=TIMESTAMP},</if>
+            <if test="errorMessage != null">#{errorMessage,jdbcType=VARCHAR},</if>
+        </trim>
+    </insert>
+
+    <!-- 批量插入PING结果 -->
+    <insert id="saveBatch" parameterType="java.util.List">
+        INSERT INTO ping_result (id, task_id, target_ip, is_reachable, response_time, packet_loss, ping_time, error_message)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id,jdbcType=VARCHAR}, #{item.taskId,jdbcType=VARCHAR}, #{item.targetIp,jdbcType=VARCHAR}, 
+             #{item.isReachable,jdbcType=BOOLEAN}, #{item.responseTime,jdbcType=BIGINT}, 
+             #{item.packetLoss,jdbcType=DECIMAL}, #{item.pingTime,jdbcType=TIMESTAMP}, 
+             #{item.errorMessage,jdbcType=VARCHAR})
+        </foreach>
+    </insert>
+
+    <!-- 根据ID删除 -->
+    <delete id="deleteById" parameterType="java.lang.String">
+        DELETE FROM ping_result WHERE id = #{id,jdbcType=VARCHAR}
+    </delete>
+
+    <!-- 根据任务ID删除所有结果 -->
+    <delete id="deleteByTaskId" parameterType="java.lang.String">
+        DELETE FROM ping_result WHERE task_id = #{taskId,jdbcType=VARCHAR}
+    </delete>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM ping_result
+        WHERE id = #{id,jdbcType=VARCHAR}
+    </select>
+
+    <!-- 分页查询PING结果 -->
+    <select id="selectByPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM ping_result
+        <where>
+            <if test="taskId != null and taskId != ''">
+                AND task_id = #{taskId}
+            </if>
+            <if test="targetIp != null and targetIp != ''">
+                AND target_ip = #{targetIp}
+            </if>
+            <if test="isReachable != null">
+                AND is_reachable = #{isReachable}
+            </if>
+            <if test="startDate != null">
+                AND ping_time &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND ping_time &lt;= #{endDate}
+            </if>
+        </where>
+        ORDER BY ping_time DESC
+        LIMIT #{pageStart}, #{pageSize}
+    </select>
+
+    <!-- 计算总记录数 -->
+    <select id="countByPage" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM ping_result
+        <where>
+            <if test="taskId != null and taskId != ''">
+                AND task_id = #{taskId}
+            </if>
+            <if test="targetIp != null and targetIp != ''">
+                AND target_ip = #{targetIp}
+            </if>
+            <if test="isReachable != null">
+                AND is_reachable = #{isReachable}
+            </if>
+            <if test="startDate != null">
+                AND ping_time &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND ping_time &lt;= #{endDate}
+            </if>
+        </where>
+    </select>
+
+    <!-- 查询最新结果 -->
+    <select id="selectLatestResults" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM ping_result
+        WHERE task_id = #{taskId,jdbcType=VARCHAR}
+        ORDER BY ping_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 查询指定时间范围内的统计数据 -->
+    <select id="selectStatistics" resultType="java.util.Map">
+        SELECT 
+            target_ip,
+            COUNT(*) as total_count,
+            SUM(CASE WHEN is_reachable = 1 THEN 1 ELSE 0 END) as success_count,
+            AVG(response_time) as avg_response_time,
+            MIN(response_time) as min_response_time,
+            MAX(response_time) as max_response_time,
+            AVG(packet_loss) as avg_packet_loss
+        FROM ping_result
+        WHERE task_id = #{taskId,jdbcType=VARCHAR}
+        <if test="startDate != null">
+            AND ping_time &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND ping_time &lt;= #{endDate}
+        </if>
+        GROUP BY target_ip
+    </select>
+
+    <!-- 删除指定时间之前的历史数据 -->
+    <delete id="deleteHistoryData">
+        DELETE FROM ping_result 
+        WHERE ping_time &lt; #{beforeDate,jdbcType=TIMESTAMP}
+    </delete>
+
+    <!-- 按时间范围查询图表数据 -->
+    <select id="selectChartData" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(ping_time, '%Y-%m-%d %H:%i:00') as time_point,
+            target_ip,
+            AVG(response_time) as avg_response_time,
+            AVG(CASE WHEN is_reachable = 1 THEN 100 ELSE 0 END) as availability
+        FROM ping_result
+        WHERE task_id = #{taskId,jdbcType=VARCHAR}
+        <if test="startDate != null">
+            AND ping_time &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND ping_time &lt;= #{endDate}
+        </if>
+        GROUP BY time_point, target_ip
+        ORDER BY time_point ASC, target_ip ASC
+    </select>
+
+    <!-- 查询失败记录（用于告警） -->
+    <select id="selectFailureResults" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM ping_result
+        WHERE task_id = #{taskId,jdbcType=VARCHAR}
+        AND is_reachable = 0
+        <if test="startDate != null">
+            AND ping_time &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND ping_time &lt;= #{endDate}
+        </if>
+        ORDER BY ping_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 获取任务的最新状态 -->
+    <select id="selectLatestStatus" resultType="java.util.Map">
+        SELECT 
+            target_ip,
+            is_reachable,
+            response_time,
+            packet_loss,
+            ping_time,
+            error_message
+        FROM ping_result pr1
+        WHERE task_id = #{taskId,jdbcType=VARCHAR}
+        AND ping_time = (
+            SELECT MAX(ping_time) 
+            FROM ping_result pr2 
+            WHERE pr2.task_id = pr1.task_id 
+            AND pr2.target_ip = pr1.target_ip
+        )
+        ORDER BY target_ip ASC
+    </select>
+
+</mapper> 

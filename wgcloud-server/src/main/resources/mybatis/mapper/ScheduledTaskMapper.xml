@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wgcloud.mapper.ScheduledTaskMapper">
+
+    <resultMap id="ScheduledTaskResultMap" type="com.wgcloud.entity.ScheduledTask">
+        <id column="id" property="id" jdbcType="VARCHAR"/>
+        <result column="hostname" property="hostname" jdbcType="VARCHAR"/>
+        <result column="task_name" property="taskName" jdbcType="VARCHAR"/>
+        <result column="cron_expression" property="cronExpression" jdbcType="VARCHAR"/>
+        <result column="command" property="command" jdbcType="LONGVARCHAR"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="last_execute_time" property="lastExecuteTime" jdbcType="TIMESTAMP"/>
+        <result column="enabled" property="enabled" jdbcType="BOOLEAN"/>
+        <result column="tags" property="tags" jdbcType="VARCHAR"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="timeout_seconds" property="timeoutSeconds" jdbcType="INTEGER"/>
+        <result column="retry_count" property="retryCount" jdbcType="INTEGER"/>
+        <result column="max_retry_count" property="maxRetryCount" jdbcType="INTEGER"/>
+        <result column="last_result" property="lastResult" jdbcType="LONGVARCHAR"/>
+        <result column="last_error_message" property="lastErrorMessage" jdbcType="LONGVARCHAR"/>
+        <result column="last_execution_time" property="lastExecutionTime" jdbcType="BIGINT"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="creator" property="creator" jdbcType="VARCHAR"/>
+        <result column="next_execute_time" property="nextExecuteTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, hostname, task_name, cron_expression, command, status, last_execute_time,
+        enabled, tags, description, timeout_seconds, retry_count, max_retry_count,
+        last_result, last_error_message, last_execution_time, create_time, update_time,
+        creator, next_execute_time
+    </sql>
+
+    <!-- 根据参数查询计划任务列表 -->
+    <select id="selectByParams" parameterType="map" resultMap="ScheduledTaskResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task
+        <where>
+            <if test="hostname != null and hostname != ''">
+                AND hostname LIKE CONCAT('%', #{hostname}, '%')
+            </if>
+            <if test="taskName != null and taskName != ''">
+                AND task_name LIKE CONCAT('%', #{taskName}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="enabled != null">
+                AND enabled = #{enabled}
+            </if>
+            <if test="creator != null and creator != ''">
+                AND creator = #{creator}
+            </if>
+            <if test="tags != null and tags != ''">
+                AND tags LIKE CONCAT('%', #{tags}, '%')
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        <if test="offset != null and limit != null">
+            LIMIT #{offset}, #{limit}
+        </if>
+    </select>
+
+    <!-- 根据参数统计计划任务数量 -->
+    <select id="countByParams" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM scheduled_task
+        <where>
+            <if test="hostname != null and hostname != ''">
+                AND hostname LIKE CONCAT('%', #{hostname}, '%')
+            </if>
+            <if test="taskName != null and taskName != ''">
+                AND task_name LIKE CONCAT('%', #{taskName}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="enabled != null">
+                AND enabled = #{enabled}
+            </if>
+            <if test="creator != null and creator != ''">
+                AND creator = #{creator}
+            </if>
+            <if test="tags != null and tags != ''">
+                AND tags LIKE CONCAT('%', #{tags}, '%')
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据ID查询计划任务 -->
+    <select id="selectById" parameterType="string" resultMap="ScheduledTaskResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task
+        WHERE id = #{id}
+    </select>
+
+    <!-- 查询所有计划任务 -->
+    <select id="selectAll" resultMap="ScheduledTaskResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询所有启用的计划任务 -->
+    <select id="selectAllEnabled" resultMap="ScheduledTaskResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task
+        WHERE enabled = true
+        ORDER BY next_execute_time ASC
+    </select>
+
+    <!-- 保存计划任务 -->
+    <insert id="save" parameterType="com.wgcloud.entity.ScheduledTask">
+        INSERT INTO scheduled_task (
+            id, hostname, task_name, cron_expression, command, status, last_execute_time,
+            enabled, tags, description, timeout_seconds, retry_count, max_retry_count,
+            last_result, last_error_message, last_execution_time, create_time, update_time,
+            creator, next_execute_time
+        ) VALUES (
+            #{id}, #{hostname}, #{taskName}, #{cronExpression}, #{command}, #{status}, #{lastExecuteTime},
+            #{enabled}, #{tags}, #{description}, #{timeoutSeconds}, #{retryCount}, #{maxRetryCount},
+            #{lastResult}, #{lastErrorMessage}, #{lastExecutionTime}, #{createTime}, #{updateTime},
+            #{creator}, #{nextExecuteTime}
+        )
+    </insert>
+
+    <!-- 批量保存计划任务 -->
+    <insert id="insertBatch" parameterType="list">
+        INSERT INTO scheduled_task (
+            id, hostname, task_name, cron_expression, command, status, last_execute_time,
+            enabled, tags, description, timeout_seconds, retry_count, max_retry_count,
+            last_result, last_error_message, last_execution_time, create_time, update_time,
+            creator, next_execute_time
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.id}, #{item.hostname}, #{item.taskName}, #{item.cronExpression}, #{item.command}, 
+                #{item.status}, #{item.lastExecuteTime}, #{item.enabled}, #{item.tags}, #{item.description}, 
+                #{item.timeoutSeconds}, #{item.retryCount}, #{item.maxRetryCount}, #{item.lastResult}, 
+                #{item.lastErrorMessage}, #{item.lastExecutionTime}, #{item.createTime}, #{item.updateTime},
+                #{item.creator}, #{item.nextExecuteTime}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 更新计划任务 -->
+    <update id="updateById" parameterType="com.wgcloud.entity.ScheduledTask">
+        UPDATE scheduled_task
+        SET hostname = #{hostname},
+            task_name = #{taskName},
+            cron_expression = #{cronExpression},
+            command = #{command},
+            status = #{status},
+            last_execute_time = #{lastExecuteTime},
+            enabled = #{enabled},
+            tags = #{tags},
+            description = #{description},
+            timeout_seconds = #{timeoutSeconds},
+            retry_count = #{retryCount},
+            max_retry_count = #{maxRetryCount},
+            last_result = #{lastResult},
+            last_error_message = #{lastErrorMessage},
+            last_execution_time = #{lastExecutionTime},
+            update_time = #{updateTime},
+            creator = #{creator},
+            next_execute_time = #{nextExecuteTime}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID删除计划任务 -->
+    <delete id="deleteById" parameterType="string">
+        DELETE FROM scheduled_task
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 根据主机名删除计划任务 -->
+    <delete id="deleteByHostname" parameterType="string">
+        DELETE FROM scheduled_task
+        WHERE hostname = #{hostname}
+    </delete>
+
+    <!-- 根据任务名称查询计划任务 -->
+    <select id="selectByTaskName" parameterType="string" resultMap="ScheduledTaskResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task
+        WHERE task_name = #{taskName}
+        LIMIT 1
+    </select>
+
+    <!-- 根据主机名查询计划任务 -->
+    <select id="selectByHostname" parameterType="string" resultMap="ScheduledTaskResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task
+        WHERE hostname = #{hostname}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 启用/禁用计划任务 -->
+    <update id="updateEnabled">
+        UPDATE scheduled_task
+        SET enabled = #{enabled},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新任务状态 -->
+    <update id="updateStatus">
+        UPDATE scheduled_task
+        SET status = #{status},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新任务执行信息 -->
+    <update id="updateExecutionInfo">
+        UPDATE scheduled_task
+        SET last_execute_time = #{lastExecuteTime},
+            status = #{status},
+            last_result = #{lastResult},
+            last_error_message = #{lastErrorMessage},
+            last_execution_time = #{lastExecutionTime},
+            next_execute_time = #{nextExecuteTime},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 查询需要执行的计划任务 -->
+    <select id="selectTasksToExecute" parameterType="date" resultMap="ScheduledTaskResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task
+        WHERE enabled = true
+          AND (next_execute_time IS NULL OR next_execute_time &lt;= #{currentTime})
+          AND status NOT IN ('running')
+        ORDER BY next_execute_time ASC
+    </select>
+
+    <!-- 根据创建人查询计划任务 -->
+    <select id="selectByCreator" parameterType="string" resultMap="ScheduledTaskResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task
+        WHERE creator = #{creator}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据标签查询计划任务 -->
+    <select id="selectByTags" parameterType="string" resultMap="ScheduledTaskResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task
+        WHERE tags LIKE CONCAT('%', #{tags}, '%')
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 获取任务统计信息 -->
+    <select id="getTaskStatistics" resultType="map">
+        SELECT 
+            COUNT(*) as total_count,
+            SUM(CASE WHEN enabled = true THEN 1 ELSE 0 END) as enabled_count,
+            SUM(CASE WHEN enabled = false THEN 1 ELSE 0 END) as disabled_count,
+            SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_count,
+            SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_count,
+            SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END) as running_count
+        FROM scheduled_task
+    </select>
+
+    <!-- 根据状态查询计划任务 -->
+    <select id="selectByStatus" parameterType="string" resultMap="ScheduledTaskResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task
+        WHERE status = #{status}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 增加重试次数 -->
+    <update id="incrementRetryCount">
+        UPDATE scheduled_task
+        SET retry_count = retry_count + 1,
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 重置重试次数 -->
+    <update id="resetRetryCount">
+        UPDATE scheduled_task
+        SET retry_count = 0,
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+</mapper> 

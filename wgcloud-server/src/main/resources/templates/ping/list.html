@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PING监测任务管理</title>
+    <link rel="stylesheet" href="/AdminLTE/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/AdminLTE/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="/AdminLTE/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
+    <style>
+        .status-online { color: #28a745; }
+        .status-offline { color: #dc3545; }
+        .status-disabled { color: #6c757d; }
+    </style>
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
+    <!-- 引入通用的侧边栏 -->
+    <div th:replace="common/aside :: aside"></div>
+
+    <!-- Content Wrapper -->
+    <div class="content-wrapper">
+        <!-- Content Header -->
+        <div class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-6">
+                        <h1 class="m-0">PING监测任务管理</h1>
+                    </div>
+                    <div class="col-sm-6">
+                        <ol class="breadcrumb float-sm-right">
+                            <li class="breadcrumb-item"><a href="/index">首页</a></li>
+                            <li class="breadcrumb-item active">PING监测</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <section class="content">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">任务列表</h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="addTask()">
+                                        <i class="fas fa-plus"></i> 添加任务
+                                    </button>
+                                    <button type="button" class="btn btn-info btn-sm" onclick="refreshPage()">
+                                        <i class="fas fa-sync"></i> 刷新
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 搜索栏 -->
+                            <div class="card-body">
+                                <form id="searchForm" class="form-inline mb-3">
+                                    <div class="form-group mr-3">
+                                        <label for="taskName" class="mr-2">任务名称:</label>
+                                        <input type="text" class="form-control" id="taskName" name="taskName" placeholder="请输入任务名称">
+                                    </div>
+                                    <div class="form-group mr-3">
+                                        <label for="isEnabled" class="mr-2">状态:</label>
+                                        <select class="form-control" id="isEnabled" name="isEnabled">
+                                            <option value="">全部</option>
+                                            <option value="1">启用</option>
+                                            <option value="0">禁用</option>
+                                        </select>
+                                    </div>
+                                    <button type="button" class="btn btn-primary" onclick="searchTasks()">
+                                        <i class="fas fa-search"></i> 查询
+                                    </button>
+                                    <button type="button" class="btn btn-secondary ml-2" onclick="resetSearch()">
+                                        <i class="fas fa-undo"></i> 重置
+                                    </button>
+                                </form>
+
+                                <!-- 数据表格 -->
+                                <table id="taskTable" class="table table-bordered table-striped">
+                                    <thead>
+                                    <tr>
+                                        <th>任务名称</th>
+                                        <th>IP列表</th>
+                                        <th>监测间隔</th>
+                                        <th>超时时间</th>
+                                        <th>状态</th>
+                                        <th>线程状态</th>
+                                        <th>创建时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="taskTableBody">
+                                    <!-- 数据将通过AJAX加载 -->
+                                    </tbody>
+                                </table>
+
+                                <!-- 分页 -->
+                                <div class="row">
+                                    <div class="col-sm-12 col-md-5">
+                                        <div class="dataTables_info" id="pageInfo"></div>
+                                    </div>
+                                    <div class="col-sm-12 col-md-7">
+                                        <div class="dataTables_paginate paging_simple_numbers" id="pagination"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 引入通用的页脚 -->
+    <div th:replace="common/footer :: footer"></div>
+</div>
+
+<!-- jQuery -->
+<script src="/AdminLTE/plugins/jquery/jquery.min.js"></script>
+<!-- Bootstrap 4 -->
+<script src="/AdminLTE/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- AdminLTE App -->
+<script src="/AdminLTE/dist/js/adminlte.min.js"></script>
+
+<script>
+let currentPage = 1;
+let pageSize = 10;
+
+$(document).ready(function() {
+    loadTasks();
+    
+    // 定时刷新任务状态
+    setInterval(refreshTaskStatus, 30000); // 30秒刷新一次
+});
+
+// 加载任务列表
+function loadTasks() {
+    const taskName = $('#taskName').val();
+    const isEnabled = $('#isEnabled').val();
+    
+    $.ajax({
+        url: '/ping/list',
+        type: 'GET',
+        data: {
+            taskName: taskName,
+            isEnabled: isEnabled,
+            page: currentPage,
+            size: pageSize
+        },
+        success: function(response) {
+            if (response.success) {
+                renderTaskTable(response.data.data);
+                renderPagination(response.data.total, response.data.page, response.data.size);
+            } else {
+                alert('加载任务列表失败: ' + response.message);
+            }
+        },
+        error: function() {
+            alert('服务器连接失败');
+        }
+    });
+}
+
+// 渲染任务表格
+function renderTaskTable(tasks) {
+    const tbody = $('#taskTableBody');
+    tbody.empty();
+    
+    if (!tasks || tasks.length === 0) {
+        tbody.append('<tr><td colspan="8" class="text-center">暂无数据</td></tr>');
+        return;
+    }
+    
+    tasks.forEach(task => {
+        const statusClass = task.isEnabled ? 'status-online' : 'status-disabled';
+        const statusText = task.isEnabled ? '启用' : '禁用';
+        const threadStatus = task.threadRunning ? '<span class="status-online">运行中</span>' : '<span class="status-offline">已停止</span>';
+        
+        const ipDisplay = task.ipList.length > 30 ? task.ipList.substring(0, 30) + '...' : task.ipList;
+        
+        const row = `
+            <tr>
+                <td><strong>${task.taskName}</strong><br><small class="text-muted">${task.description || ''}</small></td>
+                <td title="${task.ipList}">${ipDisplay}</td>
+                <td>${task.pingInterval}秒</td>
+                <td>${task.timeout}ms</td>
+                <td><span class="${statusClass}">${statusText}</span></td>
+                <td>${threadStatus}</td>
+                <td>${task.createTime}</td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-info" onclick="viewTask('${task.id}')" title="查看详情">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-warning" onclick="editTask('${task.id}')" title="编辑">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn ${task.isEnabled ? 'btn-secondary' : 'btn-success'}" 
+                                onclick="toggleTaskStatus('${task.id}', ${!task.isEnabled})" 
+                                title="${task.isEnabled ? '禁用' : '启用'}">
+                            <i class="fas ${task.isEnabled ? 'fa-pause' : 'fa-play'}"></i>
+                        </button>
+                        <button class="btn btn-primary" onclick="testPing('${task.id}')" title="立即测试">
+                            <i class="fas fa-network-wired"></i>
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteTask('${task.id}')" title="删除">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        tbody.append(row);
+    });
+}
+
+// 渲染分页
+function renderPagination(total, page, size) {
+    const totalPages = Math.ceil(total / size);
+    const pageInfo = `显示第 ${(page - 1) * size + 1} 到 ${Math.min(page * size, total)} 条记录，共 ${total} 条`;
+    $('#pageInfo').text(pageInfo);
+    
+    const pagination = $('#pagination');
+    pagination.empty();
+    
+    if (totalPages <= 1) return;
+    
+    let paginationHtml = '<ul class="pagination">';
+    
+    // 上一页
+    if (page > 1) {
+        paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${page - 1})">上一页</a></li>`;
+    }
+    
+    // 页码
+    const startPage = Math.max(1, page - 2);
+    const endPage = Math.min(totalPages, page + 2);
+    
+    for (let i = startPage; i <= endPage; i++) {
+        const activeClass = i === page ? 'active' : '';
+        paginationHtml += `<li class="page-item ${activeClass}"><a class="page-link" href="#" onclick="changePage(${i})">${i}</a></li>`;
+    }
+    
+    // 下一页
+    if (page < totalPages) {
+        paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${page + 1})">下一页</a></li>`;
+    }
+    
+    paginationHtml += '</ul>';
+    pagination.html(paginationHtml);
+}
+
+// 页面跳转
+function changePage(page) {
+    currentPage = page;
+    loadTasks();
+}
+
+// 搜索任务
+function searchTasks() {
+    currentPage = 1;
+    loadTasks();
+}
+
+// 重置搜索
+function resetSearch() {
+    $('#searchForm')[0].reset();
+    currentPage = 1;
+    loadTasks();
+}
+
+// 添加任务
+function addTask() {
+    window.location.href = '/ping/add';
+}
+
+// 编辑任务
+function editTask(id) {
+    window.location.href = '/ping/edit/' + id;
+}
+
+// 查看任务详情
+function viewTask(id) {
+    window.location.href = '/ping/view/' + id;
+}
+
+// 切换任务状态
+function toggleTaskStatus(id, enable) {
+    const action = enable ? '启用' : '禁用';
+    if (confirm(`确定要${action}这个任务吗？`)) {
+        $.ajax({
+            url: '/ping/toggleStatus',
+            type: 'POST',
+            data: { id: id, isEnabled: enable },
+            success: function(response) {
+                if (response.success) {
+                    alert(`任务${action}成功`);
+                    loadTasks();
+                } else {
+                    alert(`任务${action}失败: ` + response.message);
+                }
+            },
+            error: function() {
+                alert('服务器连接失败');
+            }
+        });
+    }
+}
+
+// 立即测试
+function testPing(id) {
+    $.ajax({
+        url: '/ping/test/' + id,
+        type: 'POST',
+        success: function(response) {
+            if (response.success) {
+                alert('测试完成，请查看结果页面');
+                viewTask(id);
+            } else {
+                alert('测试失败: ' + response.message);
+            }
+        },
+        error: function() {
+            alert('服务器连接失败');
+        }
+    });
+}
+
+// 删除任务
+function deleteTask(id) {
+    if (confirm('确定要删除这个任务吗？删除后将无法恢复！')) {
+        $.ajax({
+            url: '/ping/delete/' + id,
+            type: 'DELETE',
+            success: function(response) {
+                if (response.success) {
+                    alert('任务删除成功');
+                    loadTasks();
+                } else {
+                    alert('任务删除失败: ' + response.message);
+                }
+            },
+            error: function() {
+                alert('服务器连接失败');
+            }
+        });
+    }
+}
+
+// 刷新页面
+function refreshPage() {
+    loadTasks();
+}
+
+// 刷新任务状态
+function refreshTaskStatus() {
+    loadTasks();
+}
+</script>
+</body>
+</html> 

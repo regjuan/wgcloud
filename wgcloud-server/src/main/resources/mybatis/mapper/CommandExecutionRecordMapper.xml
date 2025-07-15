@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wgcloud.mapper.CommandExecutionRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.wgcloud.entity.CommandExecutionRecord">
+        <id column="id" property="id" jdbcType="VARCHAR"/>
+        <result column="command_task_id" property="commandTaskId" jdbcType="VARCHAR"/>
+        <result column="hostname" property="hostname" jdbcType="VARCHAR"/>
+        <result column="host_description" property="hostDescription" jdbcType="VARCHAR"/>
+        <result column="command_content" property="commandContent" jdbcType="LONGTEXT"/>
+        <result column="execute_time" property="executeTime" jdbcType="TIMESTAMP"/>
+        <result column="complete_time" property="completeTime" jdbcType="TIMESTAMP"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="result" property="result" jdbcType="LONGTEXT"/>
+        <result column="error_message" property="errorMessage" jdbcType="LONGTEXT"/>
+        <result column="execution_time" property="executionTime" jdbcType="BIGINT"/>
+        <result column="exit_code" property="exitCode" jdbcType="INTEGER"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="retry_count" property="retryCount" jdbcType="INTEGER"/>
+        <result column="executor_info" property="executorInfo" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, command_task_id, hostname, host_description, command_content,
+        execute_time, complete_time, status, result, error_message,
+        execution_time, exit_code, create_time, update_time, retry_count, executor_info
+    </sql>
+
+    <!-- 插入执行记录 -->
+    <insert id="save" parameterType="com.wgcloud.entity.CommandExecutionRecord">
+        INSERT INTO command_execution_record
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="commandTaskId != null">command_task_id,</if>
+            <if test="hostname != null">hostname,</if>
+            <if test="hostDescription != null">host_description,</if>
+            <if test="commandContent != null">command_content,</if>
+            <if test="executeTime != null">execute_time,</if>
+            <if test="completeTime != null">complete_time,</if>
+            <if test="status != null">status,</if>
+            <if test="result != null">result,</if>
+            <if test="errorMessage != null">error_message,</if>
+            <if test="executionTime != null">execution_time,</if>
+            <if test="exitCode != null">exit_code,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="retryCount != null">retry_count,</if>
+            <if test="executorInfo != null">executor_info,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id,jdbcType=VARCHAR},</if>
+            <if test="commandTaskId != null">#{commandTaskId,jdbcType=VARCHAR},</if>
+            <if test="hostname != null">#{hostname,jdbcType=VARCHAR},</if>
+            <if test="hostDescription != null">#{hostDescription,jdbcType=VARCHAR},</if>
+            <if test="commandContent != null">#{commandContent,jdbcType=LONGTEXT},</if>
+            <if test="executeTime != null">#{executeTime,jdbcType=TIMESTAMP},</if>
+            <if test="completeTime != null">#{completeTime,jdbcType=TIMESTAMP},</if>
+            <if test="status != null">#{status,jdbcType=VARCHAR},</if>
+            <if test="result != null">#{result,jdbcType=LONGTEXT},</if>
+            <if test="errorMessage != null">#{errorMessage,jdbcType=LONGTEXT},</if>
+            <if test="executionTime != null">#{executionTime,jdbcType=BIGINT},</if>
+            <if test="exitCode != null">#{exitCode,jdbcType=INTEGER},</if>
+            <if test="createTime != null">#{createTime,jdbcType=TIMESTAMP},</if>
+            <if test="updateTime != null">#{updateTime,jdbcType=TIMESTAMP},</if>
+            <if test="retryCount != null">#{retryCount,jdbcType=INTEGER},</if>
+            <if test="executorInfo != null">#{executorInfo,jdbcType=VARCHAR},</if>
+        </trim>
+    </insert>
+
+    <!-- 批量插入 -->
+    <insert id="insertBatch" parameterType="java.util.List">
+        INSERT INTO command_execution_record (id, command_task_id, hostname, host_description, command_content,
+        execute_time, complete_time, status, result, error_message, execution_time, exit_code,
+        create_time, update_time, retry_count, executor_info)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id}, #{item.commandTaskId}, #{item.hostname}, #{item.hostDescription}, 
+             #{item.commandContent}, #{item.executeTime}, #{item.completeTime}, #{item.status}, 
+             #{item.result}, #{item.errorMessage}, #{item.executionTime}, #{item.exitCode}, 
+             #{item.createTime}, #{item.updateTime}, #{item.retryCount}, #{item.executorInfo})
+        </foreach>
+    </insert>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM command_execution_record
+        WHERE id = #{id}
+    </select>
+
+    <!-- 查询所有 -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM command_execution_record
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据参数查询 -->
+    <select id="selectByParams" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM command_execution_record
+        <where>
+            <if test="commandTaskId != null and commandTaskId != ''">
+                AND command_task_id = #{commandTaskId}
+            </if>
+            <if test="hostname != null and hostname != ''">
+                AND hostname LIKE CONCAT('%', #{hostname}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="startTime != null and startTime != ''">
+                AND create_time >= #{startTime}
+            </if>
+            <if test="endTime != null and endTime != ''">
+                AND create_time &lt;= #{endTime}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据参数统计数量 -->
+    <select id="countByParams" resultType="int">
+        SELECT COUNT(*)
+        FROM command_execution_record
+        <where>
+            <if test="commandTaskId != null and commandTaskId != ''">
+                AND command_task_id = #{commandTaskId}
+            </if>
+            <if test="hostname != null and hostname != ''">
+                AND hostname LIKE CONCAT('%', #{hostname}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="startTime != null and startTime != ''">
+                AND create_time >= #{startTime}
+            </if>
+            <if test="endTime != null and endTime != ''">
+                AND create_time &lt;= #{endTime}
+            </if>
+        </where>
+    </select>
+
+    <!-- 更新 -->
+    <update id="updateById" parameterType="com.wgcloud.entity.CommandExecutionRecord">
+        UPDATE command_execution_record
+        <set>
+            <if test="commandTaskId != null">command_task_id = #{commandTaskId},</if>
+            <if test="hostname != null">hostname = #{hostname},</if>
+            <if test="hostDescription != null">host_description = #{hostDescription},</if>
+            <if test="commandContent != null">command_content = #{commandContent},</if>
+            <if test="executeTime != null">execute_time = #{executeTime},</if>
+            <if test="completeTime != null">complete_time = #{completeTime},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="result != null">result = #{result},</if>
+            <if test="errorMessage != null">error_message = #{errorMessage},</if>
+            <if test="executionTime != null">execution_time = #{executionTime},</if>
+            <if test="exitCode != null">exit_code = #{exitCode},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="retryCount != null">retry_count = #{retryCount},</if>
+            <if test="executorInfo != null">executor_info = #{executorInfo},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID删除 -->
+    <delete id="deleteById">
+        DELETE FROM command_execution_record WHERE id = #{id}
+    </delete>
+
+    <!-- 批量删除 -->
+    <delete id="deleteBatch">
+        DELETE FROM command_execution_record WHERE id IN
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 根据任务ID查询执行记录 -->
+    <select id="selectByTaskId" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM command_execution_record
+        WHERE command_task_id = #{commandTaskId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据状态查询 -->
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM command_execution_record
+        WHERE status = #{status}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据主机名查询 -->
+    <select id="selectByHostname" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM command_execution_record
+        WHERE hostname = #{hostname}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 更新执行状态 -->
+    <update id="updateStatus">
+        UPDATE command_execution_record
+        SET status = #{status},
+            result = #{result},
+            error_message = #{errorMessage},
+            exit_code = #{exitCode},
+            execution_time = #{executionTime},
+            complete_time = NOW(),
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据任务ID统计各状态的记录数 -->
+    <select id="countStatusByTaskId" resultType="map">
+        SELECT 
+            status,
+            COUNT(*) as count
+        FROM command_execution_record
+        WHERE command_task_id = #{commandTaskId}
+        GROUP BY status
+    </select>
+
+    <!-- 查询任务的执行进度 -->
+    <select id="selectTaskProgress" resultType="map">
+        SELECT 
+            COUNT(*) as total_count,
+            SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_count,
+            SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_count,
+            SUM(CASE WHEN status = 'timeout' THEN 1 ELSE 0 END) as timeout_count,
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+            SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END) as running_count
+        FROM command_execution_record
+        WHERE command_task_id = #{commandTaskId}
+    </select>
+
+    <!-- 根据任务ID删除所有相关记录 -->
+    <delete id="deleteByTaskId">
+        DELETE FROM command_execution_record WHERE command_task_id = #{commandTaskId}
+    </delete>
+
+    <!-- 查询失败的执行记录 -->
+    <select id="selectFailedRecords" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM command_execution_record
+        WHERE command_task_id = #{commandTaskId}
+        AND status = 'failed'
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询超时的执行记录 -->
+    <select id="selectTimeoutRecords" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM command_execution_record
+        WHERE status = 'timeout'
+        OR (status = 'running' AND TIMESTAMPDIFF(SECOND, execute_time, NOW()) > 3600)
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询指定时间段内的执行记录 -->
+    <select id="selectByTimeRange" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM command_execution_record
+        WHERE create_time >= #{startTime}
+        AND create_time &lt;= #{endTime}
+        ORDER BY create_time DESC
+    </select>
+
+</mapper> 

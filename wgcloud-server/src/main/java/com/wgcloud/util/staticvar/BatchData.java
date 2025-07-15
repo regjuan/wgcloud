@@ -54,5 +54,14 @@ public class BatchData {
     // 入侵检测信息
     public static List<IntrusionInfo> INTRUSION_INFO_LIST = Collections.synchronizedList(new ArrayList<IntrusionInfo>());
 
+    // Docker容器信息
+    public static List<DockerContainer> DOCKER_CONTAINER_LIST = Collections.synchronizedList(new ArrayList<DockerContainer>());
+
+    // Docker容器状态
+    public static List<DockerState> DOCKER_STATE_LIST = Collections.synchronizedList(new ArrayList<DockerState>());
+
+    // Ping监控结果
+    public static List<PingResult> PING_RESULT_LIST = Collections.synchronizedList(new ArrayList<PingResult>());
+
 
 }

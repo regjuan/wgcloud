@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>指令任务详情</title>
+    <link rel="stylesheet" href="/AdminLTE/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/AdminLTE/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="/AdminLTE/plugins/chart.js/Chart.min.css">
+    <style>
+        .info-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .command-content {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .progress-section {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status-card {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .status-pending { background-color: #fff3cd; border-left: 4px solid #ffc107; }
+        .status-deploying { background-color: #d1ecf1; border-left: 4px solid #17a2b8; }
+        .status-completed { background-color: #d4edda; border-left: 4px solid #28a745; }
+        .status-failed { background-color: #f8d7da; border-left: 4px solid #dc3545; }
+        .status-partial { background-color: #ffeaa7; border-left: 4px solid #fd7e14; }
+    </style>
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
+    <!-- 引入通用的侧边栏 -->
+    <div th:replace="common/aside :: aside"></div>
+
+    <!-- Content Wrapper -->
+    <div class="content-wrapper">
+        <!-- Content Header -->
+        <div class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-6">
+                        <h1 class="m-0">指令任务详情</h1>
+                    </div>
+                    <div class="col-sm-6">
+                        <ol class="breadcrumb float-sm-right">
+                            <li class="breadcrumb-item"><a href="/index">首页</a></li>
+                            <li class="breadcrumb-item"><a href="/command/list">指令下发</a></li>
+                            <li class="breadcrumb-item active">任务详情</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <section class="content">
+            <div class="container-fluid">
+                <!-- 提示信息 -->
+                <div class="alert alert-danger alert-dismissible" th:if="${error}">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    <span th:text="${error}"></span>
+                </div>
+
+                <div th:if="${commandTask}">
+                    <!-- 任务基本信息 -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="info-card">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <h3 th:text="${commandTask.commandName}"></h3>
+                                        <p th:text="${commandTask.description}" th:if="${commandTask.description}"></p>
+                                        <p th:unless="${commandTask.description}">暂无描述</p>
+                                    </div>
+                                    <div class="col-md-4 text-right">
+                                        <div class="btn-group">
+                                            <a th:href="@{/command/history/{taskId}(taskId=${commandTask.id})}" 
+                                               class="btn btn-light btn-sm">
+                                                <i class="fas fa-history"></i> 执行历史
+                                            </a>
+                                            <a th:href="@{/command/redeploy/{id}(id=${commandTask.id})}" 
+                                               class="btn btn-warning btn-sm"
+                                               onclick="return confirm('确定要重新执行此任务吗？')">
+                                                <i class="fas fa-redo"></i> 重新执行
+                                            </a>
+                                            <a th:href="@{/command/list}" class="btn btn-secondary btn-sm">
+                                                <i class="fas fa-arrow-left"></i> 返回列表
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 任务状态和进度 -->
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">执行进度</h3>
+                                    <div class="card-tools">
+                                        <button type="button" class="btn btn-sm btn-primary" onclick="refreshProgress()">
+                                            <i class="fas fa-sync-alt"></i> 刷新
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="progress-section">
+                                        <!-- 进度条 -->
+                                        <div class="row mb-3">
+                                            <div class="col-12">
+                                                <div class="d-flex justify-content-between">
+                                                    <span>整体进度</span>
+                                                    <span th:text="${commandTask.executedCount} + '/' + ${commandTask.totalCount}"></span>
+                                                </div>
+                                                <div class="progress" style="height: 25px;">
+                                                    <div class="progress-bar" 
+                                                         th:style="'width: ' + ${commandTask.totalCount > 0 ? (commandTask.executedCount * 100 / commandTask.totalCount) : 0} + '%'"
+                                                         th:class="'progress-bar ' + 
+                                                            ${commandTask.status == 'completed' ? 'bg-success' :
+                                                             commandTask.status == 'failed' ? 'bg-danger' :
+                                                             commandTask.status == 'partial' ? 'bg-warning' : 'bg-info'}"
+                                                         th:text="${commandTask.totalCount > 0 ? 
+                                                                  #numbers.formatDecimal((commandTask.executedCount * 100.0 / commandTask.totalCount), 1, 1) : 0} + '%'">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- 详细统计 -->
+                                        <div class="row" th:if="${progress}">
+                                            <div class="col-md-2">
+                                                <div class="info-box bg-success">
+                                                    <span class="info-box-icon"><i class="fas fa-check"></i></span>
+                                                    <div class="info-box-content">
+                                                        <span class="info-box-text">成功</span>
+                                                        <span class="info-box-number" th:text="${progress.success_count ?: 0}"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="info-box bg-danger">
+                                                    <span class="info-box-icon"><i class="fas fa-times"></i></span>
+                                                    <div class="info-box-content">
+                                                        <span class="info-box-text">失败</span>
+                                                        <span class="info-box-number" th:text="${progress.failed_count ?: 0}"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="info-box bg-warning">
+                                                    <span class="info-box-icon"><i class="fas fa-clock"></i></span>
+                                                    <div class="info-box-content">
+                                                        <span class="info-box-text">超时</span>
+                                                        <span class="info-box-number" th:text="${progress.timeout_count ?: 0}"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="info-box bg-info">
+                                                    <span class="info-box-icon"><i class="fas fa-play"></i></span>
+                                                    <div class="info-box-content">
+                                                        <span class="info-box-text">执行中</span>
+                                                        <span class="info-box-number" th:text="${progress.running_count ?: 0}"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="info-box bg-secondary">
+                                                    <span class="info-box-icon"><i class="fas fa-pause"></i></span>
+                                                    <div class="info-box-content">
+                                                        <span class="info-box-text">等待</span>
+                                                        <span class="info-box-number" th:text="${progress.pending_count ?: 0}"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="info-box bg-primary">
+                                                    <span class="info-box-icon"><i class="fas fa-list"></i></span>
+                                                    <div class="info-box-content">
+                                                        <span class="info-box-text">总数</span>
+                                                        <span class="info-box-number" th:text="${progress.total_count ?: 0}"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">任务状态</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div th:class="'status-card status-' + ${commandTask.status}">
+                                        <h4 th:text="${commandTask.status == 'pending' ? '等待执行' : 
+                                                      commandTask.status == 'deploying' ? '部署中' :
+                                                      commandTask.status == 'completed' ? '已完成' :
+                                                      commandTask.status == 'failed' ? '执行失败' : '部分成功'}"></h4>
+                                        <p class="mb-0">当前任务状态</p>
+                                    </div>
+
+                                    <div class="info-box">
+                                        <span class="info-box-icon bg-info"><i class="fas fa-user"></i></span>
+                                        <div class="info-box-content">
+                                            <span class="info-box-text">创建人</span>
+                                            <span class="info-box-number" th:text="${commandTask.creator}"></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="info-box">
+                                        <span class="info-box-icon bg-success"><i class="fas fa-calendar"></i></span>
+                                        <div class="info-box-content">
+                                            <span class="info-box-text">创建时间</span>
+                                            <span class="info-box-number small" 
+                                                  th:text="${#dates.format(commandTask.createTime, 'MM-dd HH:mm')}"></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="info-box" th:if="${commandTask.deployTime}">
+                                        <span class="info-box-icon bg-warning"><i class="fas fa-rocket"></i></span>
+                                        <div class="info-box-content">
+                                            <span class="info-box-text">下发时间</span>
+                                            <span class="info-box-number small" 
+                                                  th:text="${#dates.format(commandTask.deployTime, 'MM-dd HH:mm')}"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 任务详细信息 -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">指令内容</h3>
+                                    <div class="card-tools">
+                                        <button type="button" class="btn btn-sm btn-secondary" onclick="copyCommand()">
+                                            <i class="fas fa-copy"></i> 复制
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="command-content" id="commandContent" th:text="${commandTask.commandContent}"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">任务配置</h3>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td width="30%"><strong>任务ID：</strong></td>
+                                            <td th:text="${commandTask.id}"></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>执行方式：</strong></td>
+                                            <td>
+                                                <span th:text="${commandTask.taskType == 'immediate' ? '立即执行' : '定时执行'}"></span>
+                                                <span th:if="${commandTask.scheduledTime and commandTask.taskType == 'scheduled'}"
+                                                      th:text="'（' + ${#dates.format(commandTask.scheduledTime, 'yyyy-MM-dd HH:mm:ss')} + '）'"></span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>超时时间：</strong></td>
+                                            <td th:text="${commandTask.timeoutSeconds} + '秒'"></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>目标主机：</strong></td>
+                                            <td>
+                                                <span th:if="${commandTask.targetHosts and commandTask.targetHosts != '[]'}"
+                                                      th:text="'指定主机（' + ${commandTask.totalCount} + '台）'"></span>
+                                                <span th:if="${commandTask.targetTags and commandTask.targetTags != '[]'}"
+                                                      th:text="'按标签选择（' + ${commandTask.totalCount} + '台）'"></span>
+                                                <span th:if="${(commandTask.targetHosts == '[]' or !commandTask.targetHosts) and 
+                                                             (commandTask.targetTags == '[]' or !commandTask.targetTags)}"
+                                                      th:text="'所有在线主机（' + ${commandTask.totalCount} + '台）'"></span>
+                                            </td>
+                                        </tr>
+                                        <tr th:if="${commandTask.resultSummary}">
+                                            <td><strong>执行摘要：</strong></td>
+                                            <td th:text="${commandTask.resultSummary}"></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>最后更新：</strong></td>
+                                            <td th:text="${#dates.format(commandTask.updateTime, 'yyyy-MM-dd HH:mm:ss')}" 
+                                                th:if="${commandTask.updateTime}"></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 快速操作 -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">快速操作</h3>
+                                </div>
+                                <div class="card-body text-center">
+                                    <a th:href="@{/command/history/{taskId}(taskId=${commandTask.id})}" 
+                                       class="btn btn-primary btn-lg mr-3">
+                                        <i class="fas fa-history"></i> 查看执行历史
+                                    </a>
+                                    <a th:href="@{/command/redeploy/{id}(id=${commandTask.id})}" 
+                                       class="btn btn-warning btn-lg mr-3"
+                                       onclick="return confirm('确定要重新执行此任务吗？')">
+                                        <i class="fas fa-redo"></i> 重新执行任务
+                                    </a>
+                                    <button type="button" class="btn btn-info btn-lg mr-3" onclick="exportTaskInfo()">
+                                        <i class="fas fa-download"></i> 导出任务信息
+                                    </button>
+                                    <a th:href="@{/command/del(id=${commandTask.id})}" 
+                                       class="btn btn-danger btn-lg"
+                                       onclick="return confirm('确定要删除此任务吗？删除后无法恢复！')">
+                                        <i class="fas fa-trash"></i> 删除任务
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 引入通用的页脚 -->
+    <div th:replace="common/dashViewFooter :: dashViewFooter"></div>
+</div>
+
+<!-- 引入通用的JS -->
+<script src="/AdminLTE/plugins/jquery/jquery.min.js"></script>
+<script src="/AdminLTE/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/AdminLTE/dist/js/adminlte.min.js"></script>
+<script src="/AdminLTE/plugins/chart.js/Chart.min.js"></script>
+
+<script>
+    function refreshProgress() {
+        var taskId = /*[[${commandTask.id}]]*/ '';
+        if (taskId) {
+            $.ajax({
+                url: '/command/getProgress',
+                type: 'GET',
+                data: { taskId: taskId },
+                success: function(response) {
+                    if (response.success) {
+                        // 更新进度信息
+                        location.reload(); // 简单的重新加载页面
+                    } else {
+                        alert('获取进度失败：' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('获取进度失败');
+                }
+            });
+        }
+    }
+
+    function copyCommand() {
+        var commandText = $('#commandContent').text();
+        
+        // 创建临时元素
+        var tempInput = $('<textarea>');
+        $('body').append(tempInput);
+        tempInput.val(commandText).select();
+        
+        try {
+            document.execCommand('copy');
+            alert('指令内容已复制到剪贴板');
+        } catch (err) {
+            alert('复制失败，请手动复制');
+        }
+        
+        tempInput.remove();
+    }
+
+    function exportTaskInfo() {
+        var taskInfo = {
+            taskName: /*[[${commandTask.commandName}]]*/ '',
+            description: /*[[${commandTask.description}]]*/ '',
+            command: /*[[${commandTask.commandContent}]]*/ '',
+            status: /*[[${commandTask.status}]]*/ '',
+            createTime: /*[[${#dates.format(commandTask.createTime, 'yyyy-MM-dd HH:mm:ss')}]]*/ '',
+            deployTime: /*[[${#dates.format(commandTask.deployTime, 'yyyy-MM-dd HH:mm:ss')}]]*/ '',
+            creator: /*[[${commandTask.creator}]]*/ '',
+            executedCount: /*[[${commandTask.executedCount}]]*/ 0,
+            totalCount: /*[[${commandTask.totalCount}]]*/ 0
+        };
+        
+        var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(taskInfo, null, 2));
+        var downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "task_" + taskInfo.taskName + "_" + new Date().getTime() + ".json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    // 自动刷新进度（如果任务状态是进行中）
+    $(document).ready(function() {
+        var status = /*[[${commandTask.status}]]*/ '';
+        if (status === 'deploying' || status === 'pending') {
+            // 每30秒自动刷新一次
+            setInterval(refreshProgress, 30000);
+        }
+    });
+</script>
+
+</body>
+</html> 

@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wgcloud.mapper.CommandTaskMapper">
+
+    <resultMap id="BaseResultMap" type="com.wgcloud.entity.CommandTask">
+        <id column="id" property="id" jdbcType="VARCHAR"/>
+        <result column="command_name" property="commandName" jdbcType="VARCHAR"/>
+        <result column="command_content" property="commandContent" jdbcType="LONGTEXT"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="executed_count" property="executedCount" jdbcType="INTEGER"/>
+        <result column="total_count" property="totalCount" jdbcType="INTEGER"/>
+        <result column="deploy_time" property="deployTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="target_tags" property="targetTags" jdbcType="VARCHAR"/>
+        <result column="target_hosts" property="targetHosts" jdbcType="LONGTEXT"/>
+        <result column="task_type" property="taskType" jdbcType="VARCHAR"/>
+        <result column="scheduled_time" property="scheduledTime" jdbcType="TIMESTAMP"/>
+        <result column="timeout_seconds" property="timeoutSeconds" jdbcType="INTEGER"/>
+        <result column="creator" property="creator" jdbcType="VARCHAR"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="result_summary" property="resultSummary" jdbcType="LONGTEXT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, command_name, command_content, status, executed_count, total_count,
+        deploy_time, update_time, create_time, target_tags, target_hosts,
+        task_type, scheduled_time, timeout_seconds, creator, description, result_summary
+    </sql>
+
+    <!-- 插入指令任务 -->
+    <insert id="save" parameterType="com.wgcloud.entity.CommandTask">
+        INSERT INTO command_task
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="commandName != null">command_name,</if>
+            <if test="commandContent != null">command_content,</if>
+            <if test="status != null">status,</if>
+            <if test="executedCount != null">executed_count,</if>
+            <if test="totalCount != null">total_count,</if>
+            <if test="deployTime != null">deploy_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="targetTags != null">target_tags,</if>
+            <if test="targetHosts != null">target_hosts,</if>
+            <if test="taskType != null">task_type,</if>
+            <if test="scheduledTime != null">scheduled_time,</if>
+            <if test="timeoutSeconds != null">timeout_seconds,</if>
+            <if test="creator != null">creator,</if>
+            <if test="description != null">description,</if>
+            <if test="resultSummary != null">result_summary,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id,jdbcType=VARCHAR},</if>
+            <if test="commandName != null">#{commandName,jdbcType=VARCHAR},</if>
+            <if test="commandContent != null">#{commandContent,jdbcType=LONGTEXT},</if>
+            <if test="status != null">#{status,jdbcType=VARCHAR},</if>
+            <if test="executedCount != null">#{executedCount,jdbcType=INTEGER},</if>
+            <if test="totalCount != null">#{totalCount,jdbcType=INTEGER},</if>
+            <if test="deployTime != null">#{deployTime,jdbcType=TIMESTAMP},</if>
+            <if test="updateTime != null">#{updateTime,jdbcType=TIMESTAMP},</if>
+            <if test="createTime != null">#{createTime,jdbcType=TIMESTAMP},</if>
+            <if test="targetTags != null">#{targetTags,jdbcType=VARCHAR},</if>
+            <if test="targetHosts != null">#{targetHosts,jdbcType=LONGTEXT},</if>
+            <if test="taskType != null">#{taskType,jdbcType=VARCHAR},</if>
+            <if test="scheduledTime != null">#{scheduledTime,jdbcType=TIMESTAMP},</if>
+            <if test="timeoutSeconds != null">#{timeoutSeconds,jdbcType=INTEGER},</if>
+            <if test="creator != null">#{creator,jdbcType=VARCHAR},</if>
+            <if test="description != null">#{description,jdbcType=VARCHAR},</if>
+            <if test="resultSummary != null">#{resultSummary,jdbcType=LONGTEXT},</if>
+        </trim>
+    </insert>
+
+    <!-- 批量插入 -->
+    <insert id="insertBatch" parameterType="java.util.List">
+        INSERT INTO command_task (id, command_name, command_content, status, executed_count, total_count,
+        deploy_time, update_time, create_time, target_tags, target_hosts, task_type, scheduled_time,
+        timeout_seconds, creator, description, result_summary)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id}, #{item.commandName}, #{item.commandContent}, #{item.status}, 
+             #{item.executedCount}, #{item.totalCount}, #{item.deployTime}, #{item.updateTime}, 
+             #{item.createTime}, #{item.targetTags}, #{item.targetHosts}, #{item.taskType}, 
+             #{item.scheduledTime}, #{item.timeoutSeconds}, #{item.creator}, 
+             #{item.description}, #{item.resultSummary})
+        </foreach>
+    </insert>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM command_task
+        WHERE id = #{id}
+    </select>
+
+    <!-- 查询所有 -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM command_task
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据参数查询 -->
+    <select id="selectByParams" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM command_task
+        <where>
+            <if test="commandName != null and commandName != ''">
+                AND command_name LIKE CONCAT('%', #{commandName}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="creator != null and creator != ''">
+                AND creator = #{creator}
+            </if>
+            <if test="taskType != null and taskType != ''">
+                AND task_type = #{taskType}
+            </if>
+            <if test="startTime != null and startTime != ''">
+                AND create_time >= #{startTime}
+            </if>
+            <if test="endTime != null and endTime != ''">
+                AND create_time &lt;= #{endTime}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据参数统计数量 -->
+    <select id="countByParams" resultType="int">
+        SELECT COUNT(*)
+        FROM command_task
+        <where>
+            <if test="commandName != null and commandName != ''">
+                AND command_name LIKE CONCAT('%', #{commandName}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="creator != null and creator != ''">
+                AND creator = #{creator}
+            </if>
+            <if test="taskType != null and taskType != ''">
+                AND task_type = #{taskType}
+            </if>
+            <if test="startTime != null and startTime != ''">
+                AND create_time >= #{startTime}
+            </if>
+            <if test="endTime != null and endTime != ''">
+                AND create_time &lt;= #{endTime}
+            </if>
+        </where>
+    </select>
+
+    <!-- 更新 -->
+    <update id="updateById" parameterType="com.wgcloud.entity.CommandTask">
+        UPDATE command_task
+        <set>
+            <if test="commandName != null">command_name = #{commandName},</if>
+            <if test="commandContent != null">command_content = #{commandContent},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="executedCount != null">executed_count = #{executedCount},</if>
+            <if test="totalCount != null">total_count = #{totalCount},</if>
+            <if test="deployTime != null">deploy_time = #{deployTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="targetTags != null">target_tags = #{targetTags},</if>
+            <if test="targetHosts != null">target_hosts = #{targetHosts},</if>
+            <if test="taskType != null">task_type = #{taskType},</if>
+            <if test="scheduledTime != null">scheduled_time = #{scheduledTime},</if>
+            <if test="timeoutSeconds != null">timeout_seconds = #{timeoutSeconds},</if>
+            <if test="creator != null">creator = #{creator},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="resultSummary != null">result_summary = #{resultSummary},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID删除 -->
+    <delete id="deleteById">
+        DELETE FROM command_task WHERE id = #{id}
+    </delete>
+
+    <!-- 批量删除 -->
+    <delete id="deleteBatch">
+        DELETE FROM command_task WHERE id IN
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 根据状态查询 -->
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM command_task
+        WHERE status = #{status}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询待执行的定时任务 -->
+    <select id="selectScheduledTasks" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM command_task
+        WHERE task_type = 'scheduled'
+        AND status = 'pending'
+        AND scheduled_time &lt;= NOW()
+        ORDER BY scheduled_time ASC
+    </select>
+
+    <!-- 更新任务执行统计 -->
+    <update id="updateExecutionStats">
+        UPDATE command_task
+        SET executed_count = #{executedCount},
+            status = #{status},
+            result_summary = #{resultSummary},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据创建人查询任务 -->
+    <select id="selectByCreator" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM command_task
+        WHERE creator = #{creator}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询最近的任务 -->
+    <select id="selectRecentTasks" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM command_task
+        ORDER BY create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 根据任务名称模糊查询 -->
+    <select id="selectByCommandName" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM command_task
+        WHERE command_name LIKE CONCAT('%', #{commandName}, '%')
+        ORDER BY create_time DESC
+    </select>
+
+</mapper> 

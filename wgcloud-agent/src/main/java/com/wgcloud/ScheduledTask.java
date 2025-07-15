@@ -35,6 +35,7 @@ public class ScheduledTask {
 
     private Logger logger = LoggerFactory.getLogger(ScheduledTask.class);
     public static List<AppInfo> appInfoList = Collections.synchronizedList(new ArrayList<AppInfo>());
+    public static List<PingTask> pingTaskList = Collections.synchronizedList(new ArrayList<PingTask>());
     @Autowired
     private RestUtil restUtil;
     @Autowired
@@ -140,6 +141,28 @@ public class ScheduledTask {
                 jsonObject.put("appStateList", appStateResList);
             }
 
+            // Docker容器监控
+            try {
+                List<DockerContainer> dockerContainers = DockerUtil.getDockerContainers();
+                if (dockerContainers != null && dockerContainers.size() > 0) {
+                    for (DockerContainer container : dockerContainers) {
+                        container.setCreateTime(t);
+                    }
+                    jsonObject.put("dockerContainerList", dockerContainers);
+                }
+                
+                List<DockerState> dockerStates = DockerUtil.getDockerStates();
+                if (dockerStates != null && dockerStates.size() > 0) {
+                    for (DockerState state : dockerStates) {
+                        state.setCreateTime(t);
+                    }
+                    jsonObject.put("dockerStateList", dockerStates);
+                }
+            } catch (Exception e) {
+                logger.error("Docker监控数据采集失败: {}", e.getMessage());
+            }
+            
+
             logger.debug("---------------" + jsonObject.toString());
         } catch (Exception e) {
             e.printStackTrace();
@@ -174,6 +197,40 @@ public class ScheduledTask {
                 appInfoList.clear();
                 if (resultArray.size() > 0) {
                     appInfoList = JSONUtil.toList(resultArray, AppInfo.class);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logInfo.setInfoContent(e.toString());
+        } finally {
+            if (!StringUtils.isEmpty(logInfo.getInfoContent())) {
+                jsonObject.put("logInfo", logInfo);
+            }
+            restUtil.post(commonConfig.getServerUrl() + "/wgcloud/agent/minTask", jsonObject);
+        }
+    }
+    
+    /**
+     * 35秒后执行，每隔5分钟执行, 单位：ms。
+     * 获取ping监控任务
+     */
+    @Scheduled(initialDelay = 35 * 1000L, fixedRate = 300 * 1000)
+    public void pingTaskListTask() {
+        JSONObject jsonObject = new JSONObject();
+        LogInfo logInfo = new LogInfo();
+        Timestamp t = FormatUtil.getNowTime();
+        logInfo.setHostname(commonConfig.getBindIp() + "：Agent获取ping任务列表错误");
+        logInfo.setCreateTime(t);
+        try {
+            JSONObject paramsJson = new JSONObject();
+            paramsJson.put("hostname", commonConfig.getBindIp());
+            String resultJson = restUtil.post(commonConfig.getServerUrl() + "/wgcloud/ping/agentList", paramsJson);
+            if (resultJson != null) {
+                JSONArray resultArray = JSONUtil.parseArray(resultJson);
+                pingTaskList.clear();
+                if (resultArray.size() > 0) {
+                    pingTaskList = JSONUtil.toList(resultArray, PingTask.class);
+                    logger.info("获取到{}个ping监控任务", pingTaskList.size());
                 }
             }
         } catch (Exception e) {

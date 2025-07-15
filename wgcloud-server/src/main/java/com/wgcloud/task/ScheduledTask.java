@@ -79,6 +79,10 @@ public class ScheduledTask {
     @Autowired
     HeathMonitorService heathMonitorService;
     @Autowired
+    DockerService dockerService;
+    @Autowired
+    PingService pingService;
+    @Autowired
     private RestUtil restUtil;
     @Autowired
     ConnectionUtil connectionUtil;
@@ -421,6 +425,29 @@ public class ScheduledTask {
                 }
                 appInfoService.updateRecord(updateList);
                 appInfoService.saveRecord(insertList);
+            }
+            // Docker容器数据批量保存
+            if (BatchData.DOCKER_CONTAINER_LIST.size() > 0) {
+                List<DockerContainer> DOCKER_CONTAINER_LIST = new ArrayList<DockerContainer>();
+                DOCKER_CONTAINER_LIST.addAll(BatchData.DOCKER_CONTAINER_LIST);
+                BatchData.DOCKER_CONTAINER_LIST.clear();
+                dockerService.saveRecord(DOCKER_CONTAINER_LIST);
+                logger.info("保存Docker容器数据：" + DOCKER_CONTAINER_LIST.size() + "条");
+            }
+            if (BatchData.DOCKER_STATE_LIST.size() > 0) {
+                List<DockerState> DOCKER_STATE_LIST = new ArrayList<DockerState>();
+                DOCKER_STATE_LIST.addAll(BatchData.DOCKER_STATE_LIST);
+                BatchData.DOCKER_STATE_LIST.clear();
+                dockerService.saveDockerStateRecord(DOCKER_STATE_LIST);
+                logger.info("保存Docker状态数据：" + DOCKER_STATE_LIST.size() + "条");
+            }
+            // Ping监控数据批量保存
+            if (BatchData.PING_RESULT_LIST.size() > 0) {
+                List<PingResult> PING_RESULT_LIST = new ArrayList<PingResult>();
+                PING_RESULT_LIST.addAll(BatchData.PING_RESULT_LIST);
+                BatchData.PING_RESULT_LIST.clear();
+                pingService.saveResultRecord(PING_RESULT_LIST);
+                logger.info("保存Ping监控数据：" + PING_RESULT_LIST.size() + "条");
             }
         } catch (Exception e) {
             // TODO Auto-generated catch block

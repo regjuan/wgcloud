@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wgcloud.mapper.ScheduledTaskRecordMapper">
+
+    <resultMap id="ScheduledTaskRecordResultMap" type="com.wgcloud.entity.ScheduledTaskRecord">
+        <id column="id" property="id" jdbcType="VARCHAR"/>
+        <result column="task_id" property="taskId" jdbcType="VARCHAR"/>
+        <result column="task_name" property="taskName" jdbcType="VARCHAR"/>
+        <result column="hostname" property="hostname" jdbcType="VARCHAR"/>
+        <result column="command" property="command" jdbcType="LONGVARCHAR"/>
+        <result column="execute_time" property="executeTime" jdbcType="TIMESTAMP"/>
+        <result column="complete_time" property="completeTime" jdbcType="TIMESTAMP"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="result" property="result" jdbcType="LONGVARCHAR"/>
+        <result column="error_message" property="errorMessage" jdbcType="LONGVARCHAR"/>
+        <result column="duration" property="duration" jdbcType="BIGINT"/>
+        <result column="exit_code" property="exitCode" jdbcType="INTEGER"/>
+        <result column="retry_count" property="retryCount" jdbcType="INTEGER"/>
+        <result column="executor_info" property="executorInfo" jdbcType="VARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="manual_trigger" property="manualTrigger" jdbcType="BOOLEAN"/>
+        <result column="trigger_by" property="triggerBy" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, task_id, task_name, hostname, command, execute_time, complete_time, status,
+        result, error_message, duration, exit_code, retry_count, executor_info,
+        create_time, update_time, manual_trigger, trigger_by
+    </sql>
+
+    <!-- 根据参数查询执行记录列表 -->
+    <select id="selectByParams" parameterType="map" resultMap="ScheduledTaskRecordResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task_record
+        <where>
+            <if test="taskId != null and taskId != ''">
+                AND task_id = #{taskId}
+            </if>
+            <if test="taskName != null and taskName != ''">
+                AND task_name LIKE CONCAT('%', #{taskName}, '%')
+            </if>
+            <if test="hostname != null and hostname != ''">
+                AND hostname LIKE CONCAT('%', #{hostname}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="manualTrigger != null">
+                AND manual_trigger = #{manualTrigger}
+            </if>
+            <if test="triggerBy != null and triggerBy != ''">
+                AND trigger_by = #{triggerBy}
+            </if>
+            <if test="startTime != null">
+                AND execute_time &gt;= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND execute_time &lt;= #{endTime}
+            </if>
+        </where>
+        ORDER BY execute_time DESC
+        <if test="offset != null and limit != null">
+            LIMIT #{offset}, #{limit}
+        </if>
+    </select>
+
+    <!-- 根据参数统计执行记录数量 -->
+    <select id="countByParams" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM scheduled_task_record
+        <where>
+            <if test="taskId != null and taskId != ''">
+                AND task_id = #{taskId}
+            </if>
+            <if test="taskName != null and taskName != ''">
+                AND task_name LIKE CONCAT('%', #{taskName}, '%')
+            </if>
+            <if test="hostname != null and hostname != ''">
+                AND hostname LIKE CONCAT('%', #{hostname}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="manualTrigger != null">
+                AND manual_trigger = #{manualTrigger}
+            </if>
+            <if test="triggerBy != null and triggerBy != ''">
+                AND trigger_by = #{triggerBy}
+            </if>
+            <if test="startTime != null">
+                AND execute_time &gt;= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND execute_time &lt;= #{endTime}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据ID查询执行记录 -->
+    <select id="selectById" parameterType="string" resultMap="ScheduledTaskRecordResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task_record
+        WHERE id = #{id}
+    </select>
+
+    <!-- 查询所有执行记录 -->
+    <select id="selectAll" resultMap="ScheduledTaskRecordResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task_record
+        ORDER BY execute_time DESC
+    </select>
+
+    <!-- 保存执行记录 -->
+    <insert id="save" parameterType="com.wgcloud.entity.ScheduledTaskRecord">
+        INSERT INTO scheduled_task_record (
+            id, task_id, task_name, hostname, command, execute_time, complete_time, status,
+            result, error_message, duration, exit_code, retry_count, executor_info,
+            create_time, update_time, manual_trigger, trigger_by
+        ) VALUES (
+            #{id}, #{taskId}, #{taskName}, #{hostname}, #{command}, #{executeTime}, #{completeTime}, #{status},
+            #{result}, #{errorMessage}, #{duration}, #{exitCode}, #{retryCount}, #{executorInfo},
+            #{createTime}, #{updateTime}, #{manualTrigger}, #{triggerBy}
+        )
+    </insert>
+
+    <!-- 批量保存执行记录 -->
+    <insert id="insertBatch" parameterType="list">
+        INSERT INTO scheduled_task_record (
+            id, task_id, task_name, hostname, command, execute_time, complete_time, status,
+            result, error_message, duration, exit_code, retry_count, executor_info,
+            create_time, update_time, manual_trigger, trigger_by
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.id}, #{item.taskId}, #{item.taskName}, #{item.hostname}, #{item.command}, 
+                #{item.executeTime}, #{item.completeTime}, #{item.status}, #{item.result}, #{item.errorMessage}, 
+                #{item.duration}, #{item.exitCode}, #{item.retryCount}, #{item.executorInfo},
+                #{item.createTime}, #{item.updateTime}, #{item.manualTrigger}, #{item.triggerBy}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 更新执行记录 -->
+    <update id="updateById" parameterType="com.wgcloud.entity.ScheduledTaskRecord">
+        UPDATE scheduled_task_record
+        SET task_id = #{taskId},
+            task_name = #{taskName},
+            hostname = #{hostname},
+            command = #{command},
+            execute_time = #{executeTime},
+            complete_time = #{completeTime},
+            status = #{status},
+            result = #{result},
+            error_message = #{errorMessage},
+            duration = #{duration},
+            exit_code = #{exitCode},
+            retry_count = #{retryCount},
+            executor_info = #{executorInfo},
+            update_time = #{updateTime},
+            manual_trigger = #{manualTrigger},
+            trigger_by = #{triggerBy}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID删除执行记录 -->
+    <delete id="deleteById" parameterType="string">
+        DELETE FROM scheduled_task_record
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 根据任务ID查询执行记录 -->
+    <select id="selectByTaskId" parameterType="string" resultMap="ScheduledTaskRecordResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task_record
+        WHERE task_id = #{taskId}
+        ORDER BY execute_time DESC
+    </select>
+
+    <!-- 根据任务ID删除执行记录 -->
+    <delete id="deleteByTaskId" parameterType="string">
+        DELETE FROM scheduled_task_record
+        WHERE task_id = #{taskId}
+    </delete>
+
+    <!-- 根据任务ID统计执行记录数量 -->
+    <select id="countByTaskId" parameterType="string" resultType="int">
+        SELECT COUNT(*)
+        FROM scheduled_task_record
+        WHERE task_id = #{taskId}
+    </select>
+
+    <!-- 根据状态查询执行记录 -->
+    <select id="selectByStatus" parameterType="string" resultMap="ScheduledTaskRecordResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task_record
+        WHERE status = #{status}
+        ORDER BY execute_time DESC
+    </select>
+
+    <!-- 根据主机名查询执行记录 -->
+    <select id="selectByHostname" parameterType="string" resultMap="ScheduledTaskRecordResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task_record
+        WHERE hostname = #{hostname}
+        ORDER BY execute_time DESC
+    </select>
+
+    <!-- 更新执行状态 -->
+    <update id="updateStatus">
+        UPDATE scheduled_task_record
+        SET status = #{status},
+            complete_time = #{completeTime},
+            result = #{result},
+            error_message = #{errorMessage},
+            duration = #{duration},
+            exit_code = #{exitCode},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 查询最近的执行记录 -->
+    <select id="selectRecentRecords" parameterType="int" resultMap="ScheduledTaskRecordResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task_record
+        ORDER BY execute_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 根据任务ID查询最新的执行记录 -->
+    <select id="selectLatestByTaskId" parameterType="string" resultMap="ScheduledTaskRecordResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task_record
+        WHERE task_id = #{taskId}
+        ORDER BY execute_time DESC
+        LIMIT 1
+    </select>
+
+    <!-- 根据时间范围查询执行记录 -->
+    <select id="selectByTimeRange" resultMap="ScheduledTaskRecordResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task_record
+        WHERE execute_time BETWEEN #{startTime} AND #{endTime}
+        ORDER BY execute_time DESC
+    </select>
+
+    <!-- 删除过期的执行记录 -->
+    <delete id="deleteExpiredRecords" parameterType="int">
+        DELETE FROM scheduled_task_record
+        WHERE create_time &lt; DATE_SUB(NOW(), INTERVAL #{days} DAY)
+    </delete>
+
+    <!-- 获取执行统计信息 -->
+    <select id="getExecutionStatistics" parameterType="string" resultType="map">
+        SELECT 
+            COUNT(*) as total_count,
+            SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_count,
+            SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_count,
+            SUM(CASE WHEN status = 'timeout' THEN 1 ELSE 0 END) as timeout_count,
+            SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END) as running_count,
+            AVG(CASE WHEN duration IS NOT NULL THEN duration ELSE 0 END) as avg_duration,
+            MAX(duration) as max_duration,
+            MIN(duration) as min_duration
+        FROM scheduled_task_record
+        <where>
+            <if test="taskId != null and taskId != ''">
+                AND task_id = #{taskId}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据触发人查询执行记录 -->
+    <select id="selectByTriggerBy" parameterType="string" resultMap="ScheduledTaskRecordResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task_record
+        WHERE trigger_by = #{triggerBy}
+        ORDER BY execute_time DESC
+    </select>
+
+    <!-- 查询手动触发的执行记录 -->
+    <select id="selectManualTriggerRecords" resultMap="ScheduledTaskRecordResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task_record
+        WHERE manual_trigger = true
+        ORDER BY execute_time DESC
+    </select>
+
+    <!-- 查询失败的执行记录 -->
+    <select id="selectFailedRecords" resultMap="ScheduledTaskRecordResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task_record
+        WHERE status = 'failed'
+        <if test="retryable != null and retryable == true">
+            AND retry_count &lt; (
+                SELECT max_retry_count 
+                FROM scheduled_task 
+                WHERE id = scheduled_task_record.task_id
+            )
+        </if>
+        ORDER BY execute_time DESC
+    </select>
+
+    <!-- 根据任务名称查询执行记录 -->
+    <select id="selectByTaskName" parameterType="string" resultMap="ScheduledTaskRecordResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM scheduled_task_record
+        WHERE task_name LIKE CONCAT('%', #{taskName}, '%')
+        ORDER BY execute_time DESC
+    </select>
+
+    <!-- 获取任务执行图表数据 -->
+    <select id="getChartData" resultType="map">
+        SELECT 
+            DATE(execute_time) as date,
+            COUNT(*) as total_count,
+            SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_count,
+            SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_count,
+            AVG(CASE WHEN duration IS NOT NULL THEN duration ELSE 0 END) as avg_duration
+        FROM scheduled_task_record
+        <where>
+            <if test="taskId != null and taskId != ''">
+                AND task_id = #{taskId}
+            </if>
+            <if test="days != null">
+                AND execute_time &gt;= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+            </if>
+        </where>
+        GROUP BY DATE(execute_time)
+        ORDER BY DATE(execute_time) DESC
+    </select>
+
+</mapper> 
