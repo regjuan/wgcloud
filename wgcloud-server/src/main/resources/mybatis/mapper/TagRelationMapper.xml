@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wgcloud.mapper.TagRelationMapper">
+
+    <resultMap id="resultMap" type="com.wgcloud.entity.TagRelation">
+        <id column="ID" property="id" jdbcType="CHAR" />
+        <result column="TAG_ID" property="tagId" jdbcType="VARCHAR" />
+        <result column="RELATION_ID" property="relationId" jdbcType="VARCHAR" />
+        <result column="RELATION_TYPE" property="relationType" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <sql id="tableColumnList">
+        ID, TAG_ID, RELATION_ID, RELATION_TYPE
+    </sql>
+
+    <sql id="queryByParams">
+        <if test="tagId != null">
+            AND TAG_ID = #{tagId}
+        </if>
+        <if test="relationId != null">
+            AND RELATION_ID = #{relationId}
+        </if>
+        <if test="relationType != null">
+            AND RELATION_TYPE = #{relationType}
+        </if>
+    </sql>
+
+    <select id="selectByParams" parameterType="map" resultMap="resultMap">
+        SELECT
+        <include refid="tableColumnList" />
+        FROM TAG_RELATION
+        <where>
+            <include refid="queryByParams" />
+        </where>
+    </select>
+
+    <insert id="save" parameterType="com.wgcloud.entity.TagRelation">
+        INSERT INTO TAG_RELATION (ID, TAG_ID, RELATION_ID, RELATION_TYPE)
+        VALUES (#{id}, #{tagId}, #{relationId}, #{relationType})
+    </insert>
+
+    <delete id="deleteByTagId" parameterType="java.lang.String">
+        DELETE FROM TAG_RELATION WHERE TAG_ID = #{tagId}
+    </delete>
+
+    <delete id="deleteByRelationId" parameterType="java.lang.String">
+        DELETE FROM TAG_RELATION WHERE RELATION_ID = #{relationId}
+    </delete>
+
+    <delete id="deleteByRelationIdAndTagId" parameterType="map">
+        DELETE FROM TAG_RELATION WHERE RELATION_ID = #{relationId} AND TAG_ID = #{tagId}
+    </delete>
+
+</mapper>
