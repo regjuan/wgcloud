@@ -299,13 +299,13 @@ CREATE TABLE `TCP_STATE` (
 
 DROP TABLE IF EXISTS `TAG`;
 CREATE TABLE `TAG` (
-   `ID` varchar(50) NOT NULL,
-   `TAG_NAME` varchar(100) NOT NULL,
-   `TAG_DESC` varchar(255) DEFAULT NULL,
-   `TAG_COLOR` varchar(20) DEFAULT '#409EFF',
-   `CREATE_TIME` datetime DEFAULT NULL,
-   PRIMARY KEY (`ID`),
-   UNIQUE KEY `UK_TAG_NAME` (`TAG_NAME`)
+    `ID` varchar(50) NOT NULL,
+    `TAG_NAME` varchar(100) NOT NULL,
+    `TAG_DESC` varchar(255) DEFAULT NULL,
+    `TAG_COLOR` varchar(20) DEFAULT '#409EFF',
+    `CREATE_TIME` datetime DEFAULT NULL,
+    PRIMARY KEY (`ID`),
+    UNIQUE KEY `UK_TAG_NAME` (`TAG_NAME`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='标签表';
 
 DROP TABLE IF EXISTS `TAG_RELATION`;
@@ -317,3 +317,42 @@ CREATE TABLE `TAG_RELATION` (
     PRIMARY KEY (`ID`),
     KEY `IDX_TAG_RELATION` (`TAG_ID`,`RELATION_TYPE`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='标签关系表';
+
+
+DROP TABLE IF EXISTS `COMMAND`;
+CREATE TABLE `COMMAND` (
+    `ID` varchar(50) NOT NULL,
+    `CMD_NAME` varchar(100) NOT NULL,
+    `CMD_CONTENT` text,
+    `CMD_TYPE` varchar(20) DEFAULT 'SHELL',
+    `TIMEOUT` int(11) DEFAULT 60,
+    `CREATE_TIME` datetime DEFAULT NULL,
+    PRIMARY KEY (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='指令库';
+
+DROP TABLE IF EXISTS `PLAYBOOK`;
+CREATE TABLE `PLAYBOOK` (
+    `ID` varchar(50) NOT NULL,
+    `PLAYBOOK_NAME` varchar(100) NOT NULL,
+    `PLAYBOOK_DESC` varchar(500) DEFAULT NULL,
+    `CRON_EXPRESSION` varchar(100) DEFAULT NULL COMMENT 'CORN表达式，为空则为手动预案',
+    `IS_ENABLED` tinyint(1) DEFAULT 1 COMMENT '是否启用 0-否 1-是',
+    `TASK_STEPS` text COMMENT '任务步骤，JSON格式',
+    `CREATE_TIME` datetime DEFAULT NULL,
+    PRIMARY KEY (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='自动化预案/任务';
+
+DROP TABLE IF EXISTS `COMMAND_RESULT`;
+CREATE TABLE `COMMAND_RESULT` (
+                                  `ID` varchar(50) NOT NULL,
+                                  `TASK_ID` varchar(50) DEFAULT NULL,
+                                  `COMMAND_ID` varchar(50) NOT NULL,
+                                  `HOSTNAME` varchar(100) NOT NULL,
+                                  `STATUS` varchar(20) NOT NULL,
+                                  `STDOUT` text,
+                                  `STDERR` text,
+                                  `EXIT_CODE` int(11) DEFAULT NULL,
+                                  `START_TIME` datetime DEFAULT NULL,
+                                  `END_TIME` datetime DEFAULT NULL,
+                                  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='指令执行历史结果';

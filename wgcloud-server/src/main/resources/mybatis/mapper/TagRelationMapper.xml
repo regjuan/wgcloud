@@ -17,6 +17,12 @@
         <if test="tagId != null">
             AND TAG_ID = #{tagId}
         </if>
+        <if test="tagIds != null">
+            AND TAG_ID IN
+            <foreach collection="tagIds" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
         <if test="relationId != null">
             AND RELATION_ID = #{relationId}
         </if>

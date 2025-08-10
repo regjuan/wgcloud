@@ -18,6 +18,12 @@
         <if test="tagName != null">
             <![CDATA[ AND TAG_NAME LIKE CONCAT('%',#{tagName},'%') ]]>
         </if>
+        <if test="ids != null">
+            AND ID IN
+            <foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
     </sql>
 
     <select id="selectByParams" parameterType="map" resultMap="resultMap">

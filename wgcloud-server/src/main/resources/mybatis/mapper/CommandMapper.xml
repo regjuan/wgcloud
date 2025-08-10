@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wgcloud.mapper.CommandMapper">
+
+    <resultMap id="resultMap" type="com.wgcloud.entity.Command">
+        <id column="ID" property="id" jdbcType="CHAR" />
+        <result column="CMD_NAME" property="cmdName" jdbcType="VARCHAR" />
+        <result column="CMD_CONTENT" property="cmdContent" jdbcType="VARCHAR" />
+        <result column="CMD_TYPE" property="cmdType" jdbcType="VARCHAR" />
+        <result column="TIMEOUT" property="timeout" jdbcType="INTEGER" />
+        <result column="CREATE_TIME" property="createTime" jdbcType="TIMESTAMP" />
+    </resultMap>
+
+    <sql id="tableColumnList">
+        ID, CMD_NAME, CMD_CONTENT, CMD_TYPE, TIMEOUT, CREATE_TIME
+    </sql>
+
+    <sql id="queryByParams">
+        <if test="cmdName != null">
+            <![CDATA[ AND CMD_NAME LIKE CONCAT('%',#{cmdName},'%') ]]>
+        </if>
+    </sql>
+
+    <select id="selectByParams" parameterType="map" resultMap="resultMap">
+        SELECT
+        <include refid="tableColumnList" />
+        FROM COMMAND
+        <where>
+            <include refid="queryByParams" />
+        </where>
+        ORDER BY CREATE_TIME DESC
+    </select>
+
+    <select id="countByParams" parameterType="map" resultType="java.lang.Integer">
+        SELECT count(*) FROM COMMAND
+        <where>
+            <include refid="queryByParams" />
+        </where>
+    </select>
+
+    <select id="selectById" parameterType="java.lang.String" resultMap="resultMap">
+        SELECT
+        <include refid="tableColumnList" />
+        FROM COMMAND WHERE ID = #{id}
+    </select>
+
+    <insert id="save" parameterType="com.wgcloud.entity.Command">
+        INSERT INTO COMMAND (ID, CMD_NAME, CMD_CONTENT, CMD_TYPE, TIMEOUT, CREATE_TIME)
+        VALUES (#{id}, #{cmdName}, #{cmdContent}, #{cmdType}, #{timeout}, #{createTime})
+    </insert>
+
+    <update id="updateById" parameterType="com.wgcloud.entity.Command">
+        UPDATE COMMAND
+        <set>
+            <if test="cmdName != null">CMD_NAME = #{cmdName},</if>
+            <if test="cmdContent != null">CMD_CONTENT = #{cmdContent},</if>
+            <if test="cmdType != null">CMD_TYPE = #{cmdType},</if>
+            <if test="timeout != null">TIMEOUT = #{timeout},</if>
+        </set>
+        WHERE ID = #{id}
+    </update>
+
+    <delete id="deleteById" parameterType="java.lang.String">
+        DELETE FROM COMMAND WHERE ID IN
+        <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+</mapper>
