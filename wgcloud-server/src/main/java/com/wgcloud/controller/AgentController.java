@@ -4,12 +4,16 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.github.pagehelper.PageInfo;
 import com.wgcloud.entity.*;
+import com.wgcloud.service.CommandResultService;
+import com.wgcloud.service.CommandService;
 import com.wgcloud.service.LogInfoService;
 import com.wgcloud.service.SystemInfoService;
 import com.wgcloud.util.TokenUtils;
 import com.wgcloud.util.msg.WarnMailUtil;
 import com.wgcloud.util.staticvar.BatchData;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +23,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.Resource;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -48,6 +55,10 @@ public class AgentController {
     private SystemInfoService systemInfoService;
     @Autowired
     private TokenUtils tokenUtils;
+    @Autowired
+    private CommandResultService commandResultService;
+    @Autowired
+    private CommandService commandService;
 
     @ResponseBody
     @RequestMapping("/minTask")
@@ -134,6 +145,71 @@ public class AgentController {
         } finally {
             return resultJson;
         }
+    }
+
+    @ResponseBody
+    @RequestMapping("/getCommand")
+    public cn.hutool.json.JSONObject getCommand(@RequestBody String paramBean) {
+        cn.hutool.json.JSONObject agentJsonObject = (cn.hutool.json.JSONObject) JSONUtil.parse(paramBean);
+        cn.hutool.json.JSONObject resultJson = new cn.hutool.json.JSONObject();
+        if (!tokenUtils.checkAgentToken(agentJsonObject)) {
+            logger.error("token is invalidate");
+            return null;
+        }
+        String hostname = agentJsonObject.get("hostname").toString();
+        if (StringUtils.isEmpty(hostname)) {
+            return null;
+        }
+        try {
+            Map<String, Object> params = new HashMap<>();
+            params.put("hostname", hostname);
+            params.put("status", "PENDING");
+            // 获取最老的一条待执行任务
+            PageInfo<CommandResult> pageInfo = commandResultService.selectByParams(params, 1, 1);
+            if (pageInfo.getList().size() < 1) {
+                return null;
+            }
+            CommandResult commandResult = pageInfo.getList().get(0);
+            Command command = commandService.selectById(commandResult.getCommandId());
+            if (command == null) {
+                commandResult.setStatus("CANCELLED");
+                commandResultService.updateById(commandResult);
+                return null;
+            }
+
+            commandResult.setStatus("RUNNING");
+            commandResult.setStartTime(new Date());
+            commandResultService.updateById(commandResult);
+
+            resultJson.put("commandResult", commandResult);
+            resultJson.put("command", command);
+            return resultJson;
+        } catch (Exception e) {
+            logger.error("Agent获取指令任务错误", e);
+            return null;
+        }
+    }
+
+    @ResponseBody
+    @RequestMapping("/updateResult")
+    public cn.hutool.json.JSONObject updateResult(@RequestBody String paramBean) {
+        cn.hutool.json.JSONObject agentJsonObject = (cn.hutool.json.JSONObject) JSONUtil.parse(paramBean);
+        cn.hutool.json.JSONObject resultJson = new cn.hutool.json.JSONObject();
+        if (!tokenUtils.checkAgentToken(agentJsonObject)) {
+            logger.error("token is invalidate");
+            resultJson.put("result", "error：token is invalidate");
+            return resultJson;
+        }
+        try {
+            CommandResult commandResult = agentJsonObject.get("commandResult", CommandResult.class);
+            commandResult.setEndTime(new Date());
+            commandResultService.updateById(commandResult);
+            resultJson.put("result", "success");
+        } catch (Exception e) {
+            logger.error("Agent上报指令执行结果错误", e);
+            resultJson.put("result", "error：" + e.toString());
+        }
+        return resultJson;
     }
 
 }

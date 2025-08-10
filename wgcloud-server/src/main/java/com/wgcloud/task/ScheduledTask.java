@@ -2,6 +2,7 @@ package com.wgcloud.task;
 
 
 import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.cron.pattern.CronPattern;
 import com.wgcloud.config.CommonConfig;
 import com.wgcloud.entity.*;
 import com.wgcloud.mapper.*;
@@ -494,5 +495,41 @@ public class ScheduledTask {
         logger.info("定时清空历史数据任务结束----------" + DateUtil.getCurrentDateTime());
     }
 
+    @Autowired
+    private PlaybookService playbookService;
+    @Autowired
+    private CommandRunService commandRunService;
+
+    /**
+     * 核心触发
+     * 查询所有预案
+     * 判断时间是否符合预案触发规则
+     * 如果符合下发给CommandRunService
+     *
+     */
+    @Scheduled(fixedRate = 60 * 1000)
+    public void commandTaskScheduler() {
+        try {
+            Map<String, Object> params = new HashMap<>();
+            params.put("isEnabled", 1); // 1 表示启用
+            List<Playbook> playbookList = playbookService.selectByParams(params, 1, 999999).getList();
+            if (playbookList.isEmpty()) {
+                return;
+            }
+
+            for (Playbook playbook : playbookList) {
+                try {
+                    if (!StringUtils.isEmpty(playbook.getCronExpression()) && new CronPattern(playbook.getCronExpression()).match(System.currentTimeMillis(), true)) {
+                        logger.info("开始执行定时任务：{}", playbook.getPlaybookName());
+                        commandRunService.runTask(playbook);
+                    }
+                } catch (Exception e) {
+                    logger.error("执行单个定时任务失败：{}", playbook.getPlaybookName(), e);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("执行定时任务调度器错误", e);
+        }
+    }
 
 }

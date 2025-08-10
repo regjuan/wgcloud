@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.Date;
 
 /**
  * @version V2.3
@@ -187,5 +190,83 @@ public class ScheduledTask {
         }
     }
 
+
+    /**
+     * 20秒后执行，每隔1分钟执行, 单位：ms。
+     * 获取指令任务并执行
+     */
+    @Scheduled(initialDelay = 20 * 1000L, fixedRate = 60 * 1000)
+    public void commandTaskExecutor() {
+        JSONObject resultJson = null;
+        try {
+            //1. 获取任务
+            JSONObject paramsJson = new JSONObject();
+            paramsJson.put("hostname", commonConfig.getBindIp());
+            String resultStr = restUtil.post(commonConfig.getServerUrl() + "/wgcloud/agent/getCommand", paramsJson);
+            if (StringUtils.isEmpty(resultStr)) {
+                return;
+            }
+            resultJson = JSONUtil.parseObj(resultStr);
+            logger.info("Get command task：{}", resultJson.toString());
+
+            CommandResult commandResult = resultJson.get("commandResult", CommandResult.class);
+            Command command = resultJson.get("command", Command.class);
+
+            //2. 执行任务
+            Process process = null;
+            StringBuilder stdout = new StringBuilder();
+            StringBuilder stderr = new StringBuilder();
+            int exitCode = -1;
+
+            try {
+                process = Runtime.getRuntime().exec(command.getCmdContent());
+
+                // 读取标准输出
+                BufferedReader stdoutReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String line;
+                while ((line = stdoutReader.readLine()) != null) {
+                    stdout.append(line).append("\n");
+                }
+
+                // 读取错误输出
+                BufferedReader stderrReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                while ((line = stderrReader.readLine()) != null) {
+                    stderr.append(line).append("\n");
+                }
+
+                // 等待进程执行完毕，并设置超时
+                boolean finished = process.waitFor(command.getTimeout(), TimeUnit.SECONDS);
+                if (!finished) {
+                    process.destroy();
+                    commandResult.setStatus("TIMEOUT");
+                } else {
+                    exitCode = process.exitValue();
+                    commandResult.setStatus(exitCode == 0 ? "SUCCESS" : "FAILED");
+                }
+
+            } catch (Exception e) {
+                logger.error("Execute command error", e);
+                commandResult.setStatus("FAILED");
+                stderr.append(e.getMessage());
+            } finally {
+                if (process != null) {
+                    process.destroy();
+                }
+            }
+
+            commandResult.setStdout(stdout.toString());
+            commandResult.setStderr(stderr.toString());
+            commandResult.setExitCode(exitCode);
+            commandResult.setEndTime(new Date());
+
+            //3. 上报结果
+            JSONObject reportJson = new JSONObject();
+            reportJson.put("commandResult", commandResult);
+            restUtil.post(commonConfig.getServerUrl() + "/wgcloud/agent/updateResult", reportJson);
+
+        } catch (Exception e) {
+            logger.error("Command task executor error", e);
+        }
+    }
 
 }

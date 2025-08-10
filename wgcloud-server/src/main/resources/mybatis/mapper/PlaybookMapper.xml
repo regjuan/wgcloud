@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wgcloud.mapper.PlaybookMapper" >
+    <resultMap id="BaseResultMap" type="com.wgcloud.entity.Playbook" >
+        <id column="ID" property="id" jdbcType="CHAR" />
+        <result column="PLAYBOOK_NAME" property="playbookName" jdbcType="VARCHAR" />
+        <result column="PLAYBOOK_DESC" property="playbookDesc" jdbcType="VARCHAR" />
+        <result column="CRON_EXPRESSION" property="cronExpression" jdbcType="VARCHAR" />
+        <result column="IS_ENABLED" property="isEnabled" jdbcType="TINYINT" />
+        <result column="TASK_STEPS" property="taskSteps" jdbcType="LONGVARCHAR" />
+        <result column="CREATE_TIME" property="createTime" jdbcType="TIMESTAMP" />
+    </resultMap>
+
+    <sql id="Base_Column_List" >
+        ID, PLAYBOOK_NAME, PLAYBOOK_DESC, CRON_EXPRESSION, IS_ENABLED, TASK_STEPS, CREATE_TIME
+    </sql>
+
+    <select id="selectByParams" resultMap="BaseResultMap" parameterType="java.util.Map" >
+        select
+        <include refid="Base_Column_List" />
+        from PLAYBOOK
+        <where >
+            <if test="playbookName != null and playbookName != ''" >
+                AND PLAYBOOK_NAME LIKE CONCAT('%', #{playbookName}, '%')
+            </if>
+        </where>
+        ORDER BY CREATE_TIME DESC
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap" parameterType="java.lang.String" >
+        select
+        <include refid="Base_Column_List" />
+        from PLAYBOOK
+        where ID = #{id,jdbcType=CHAR}
+    </select>
+
+    <insert id="save" parameterType="com.wgcloud.entity.Playbook" >
+        insert into PLAYBOOK (ID, PLAYBOOK_NAME, PLAYBOOK_DESC, CRON_EXPRESSION, IS_ENABLED, TASK_STEPS, CREATE_TIME)
+        values (#{id,jdbcType=CHAR}, #{playbookName,jdbcType=VARCHAR}, #{playbookDesc,jdbcType=VARCHAR},
+        #{cronExpression,jdbcType=VARCHAR}, #{isEnabled,jdbcType=TINYINT}, #{taskSteps,jdbcType=LONGVARCHAR},
+        #{createTime,jdbcType=TIMESTAMP})
+    </insert>
+
+    <update id="updateById" parameterType="com.wgcloud.entity.Playbook" >
+        update PLAYBOOK
+        <set >
+            <if test="playbookName != null" >
+                PLAYBOOK_NAME = #{playbookName,jdbcType=VARCHAR},
+            </if>
+            <if test="playbookDesc != null" >
+                PLAYBOOK_DESC = #{playbookDesc,jdbcType=VARCHAR},
+            </if>
+            <if test="cronExpression != null" >
+                CRON_EXPRESSION = #{cronExpression,jdbcType=VARCHAR},
+            </if>
+            <if test="isEnabled != null" >
+                IS_ENABLED = #{isEnabled,jdbcType=TINYINT},
+            </if>
+            <if test="taskSteps != null" >
+                TASK_STEPS = #{taskSteps,jdbcType=LONGVARCHAR},
+            </if>
+        </set>
+        where ID = #{id,jdbcType=CHAR}
+    </update>
+
+    <delete id="deleteById" parameterType="java.lang.String" >
+        delete from PLAYBOOK
+        where ID IN
+        <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+</mapper>

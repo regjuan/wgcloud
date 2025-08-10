@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wgcloud.mapper.CommandResultMapper">
+
+    <resultMap id="resultMap" type="com.wgcloud.entity.CommandResult">
+        <id column="ID" property="id" jdbcType="CHAR" />
+        <result column="TASK_ID" property="taskId" jdbcType="VARCHAR" />
+        <result column="COMMAND_ID" property="commandId" jdbcType="VARCHAR" />
+        <result column="HOSTNAME" property="hostname" jdbcType="VARCHAR" />
+        <result column="STATUS" property="status" jdbcType="VARCHAR" />
+        <result column="STDOUT" property="stdout" jdbcType="VARCHAR" />
+        <result column="STDERR" property="stderr" jdbcType="VARCHAR" />
+        <result column="EXIT_CODE" property="exitCode" jdbcType="INTEGER" />
+        <result column="START_TIME" property="startTime" jdbcType="TIMESTAMP" />
+        <result column="END_TIME" property="endTime" jdbcType="TIMESTAMP" />
+    </resultMap>
+
+    <sql id="tableColumnList">
+        ID, TASK_ID, COMMAND_ID, HOSTNAME, STATUS, STDOUT, STDERR, EXIT_CODE, START_TIME, END_TIME
+    </sql>
+
+    <sql id="queryByParams">
+        <if test="hostname != null">
+            <![CDATA[ AND HOSTNAME LIKE CONCAT('%',#{hostname},'%') ]]>
+        </if>
+        <if test="status != null">
+            AND STATUS = #{status}
+        </if>
+    </sql>
+
+    <select id="selectByParams" parameterType="map" resultMap="resultMap">
+        SELECT
+        <include refid="tableColumnList" />
+        FROM COMMAND_RESULT
+        <where>
+            <include refid="queryByParams" />
+        </where>
+        ORDER BY START_TIME DESC
+    </select>
+
+    <select id="countByParams" parameterType="map" resultType="java.lang.Integer">
+        SELECT count(*) FROM COMMAND_RESULT
+        <where>
+            <include refid="queryByParams" />
+        </where>
+    </select>
+
+    <insert id="save" parameterType="com.wgcloud.entity.CommandResult">
+        INSERT INTO COMMAND_RESULT (ID, TASK_ID, COMMAND_ID, HOSTNAME, STATUS, STDOUT, STDERR, EXIT_CODE, START_TIME, END_TIME)
+        VALUES (#{id}, #{taskId}, #{commandId}, #{hostname}, #{status}, #{stdout}, #{stderr}, #{exitCode}, #{startTime}, #{endTime})
+    </insert>
+
+    <delete id="deleteById" parameterType="java.lang.String">
+        DELETE FROM COMMAND_RESULT WHERE ID IN
+        <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <update id="updateById" parameterType="com.wgcloud.entity.CommandResult">
+        UPDATE COMMAND_RESULT
+        <set>
+            <if test="status != null">STATUS = #{status},</if>
+            <if test="stdout != null">STDOUT = #{stdout},</if>
+            <if test="stderr != null">STDERR = #{stderr},</if>
+            <if test="exitCode != null">EXIT_CODE = #{exitCode},</if>
+            <if test="startTime != null">START_TIME = #{startTime},</if>
+            <if test="endTime != null">END_TIME = #{endTime},</if>
+        </set>
+        WHERE ID = #{id}
+    </update>
+
+</mapper>
