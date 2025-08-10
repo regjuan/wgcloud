@@ -1,5 +1,6 @@
 package com.wgcloud.controller;
 
+import cn.hutool.json.JSONObject;
 import com.wgcloud.entity.SystemInfo;
 import com.wgcloud.service.LogInfoService;
 import com.wgcloud.service.SystemInfoService;
@@ -9,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -40,28 +42,27 @@ public class HostInfoController {
     /**
      * 保存主机备注信息
      *
-     * @param SystemInfo
-     * @param model
-     * @param request
      * @return
      */
-    @ResponseBody
     @RequestMapping(value = "save")
-    public String saveHostInfo(SystemInfo SystemInfo, Model model, HttpServletRequest request) {
+    @ResponseBody
+    public JSONObject saveHostInfo(@RequestBody SystemInfo systemInfo) {
+        JSONObject resultJson = new JSONObject();
         try {
-            if (StringUtils.isEmpty(SystemInfo.getId())) {
-                systemInfoService.save(SystemInfo);
-            } else {
-                SystemInfo ho = systemInfoService.selectById(SystemInfo.getId());
-                ho.setRemark(SystemInfo.getRemark());
+            //备注信息是更新，不是新增
+            if (!StringUtils.isEmpty(systemInfo.getId())) {
+                SystemInfo ho = systemInfoService.selectById(systemInfo.getId());
+                ho.setRemark(systemInfo.getRemark());
                 systemInfoService.updateById(ho);
             }
-
+             resultJson.put("result","success");
         } catch (Exception e) {
             logger.error("保存主机备注信息错误：", e);
-            logInfoService.save(SystemInfo.getHostname(), "保存主机备注信息错误：" + e.toString(), StaticKeys.LOG_ERROR);
+            logInfoService.save(systemInfo.getHostname(), "保存主机备注信息错误：" + e.toString(), StaticKeys.LOG_ERROR);
+            resultJson.put("result","error");
+            resultJson.put("msg",e.getMessage());
         }
-        return "redirect:/dash/systemInfoList";
+        return resultJson;
     }
 
 

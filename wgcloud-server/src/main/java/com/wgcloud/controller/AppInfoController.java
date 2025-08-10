@@ -71,9 +71,6 @@ public class AppInfoController {
 
     /**
      * agent查询进程列表
-     *
-     * @param model
-     * @param request
      * @return
      */
     @ResponseBody
@@ -103,32 +100,28 @@ public class AppInfoController {
     /**
      * 根据条件查询进程列表
      *
-     * @param model
-     * @param request
      * @return
      */
     @RequestMapping(value = "list")
-    public String AppInfoList(AppInfo appInfo, Model model) {
+    @ResponseBody
+    public JSONObject AppInfoList(AppInfo appInfo) {
+        JSONObject resultJson = new JSONObject();
         Map<String, Object> params = new HashMap<String, Object>();
         try {
-            StringBuffer url = new StringBuffer();
             String hostname = null;
             if (!StringUtils.isEmpty(appInfo.getHostname())) {
                 hostname = CodeUtil.unescape(appInfo.getHostname());
                 params.put("hostname", hostname.trim());
-                url.append("&hostname=").append(CodeUtil.escape(hostname));
             }
             PageInfo pageInfo = appInfoService.selectByParams(params, appInfo.getPage(), appInfo.getPageSize());
-            PageUtil.initPageNumber(pageInfo, model);
-            model.addAttribute("pageUrl", "/appInfo/list?1=1" + url.toString());
-            model.addAttribute("page", pageInfo);
-            model.addAttribute("appInfo", appInfo);
+            resultJson.put("page", pageInfo);
+            resultJson.put("appInfo", appInfo);
         } catch (Exception e) {
             logger.error("查询进程信息错误", e);
             logInfoService.save("查询进程信息错误", e.toString(), StaticKeys.LOG_ERROR);
-
+            resultJson.put("error",e.getMessage());
         }
-        return "app/list";
+        return resultJson;
     }
 
 
@@ -136,113 +129,127 @@ public class AppInfoController {
      * 保存应用监控信息
      *
      * @param AppInfo
-     * @param model
-     * @param request
      * @return
      */
     @RequestMapping(value = "save")
-    public String saveAppInfo(AppInfo AppInfo, Model model, HttpServletRequest request) {
+    @ResponseBody
+    public JSONObject saveAppInfo(@RequestBody AppInfo AppInfo) {
+        JSONObject resultJson = new JSONObject();
         try {
             if (StringUtils.isEmpty(AppInfo.getId())) {
                 appInfoService.save(AppInfo);
             } else {
                 appInfoService.updateById(AppInfo);
             }
+            resultJson.put("result","success");
         } catch (Exception e) {
             logger.error("保存进程错误：", e);
             logInfoService.save(AppInfo.getHostname(), "保存进程错误：" + e.toString(), StaticKeys.LOG_ERROR);
+            resultJson.put("result","error");
+            resultJson.put("msg",e.getMessage());
         }
-        return "redirect:/appInfo/list";
+        return resultJson;
     }
 
     /**
      * 添加
-     *
-     * @param model
      * @param request
      * @return
      */
     @RequestMapping(value = "edit")
-    public String edit(Model model, HttpServletRequest request) {
-        String errorMsg = "添加进程：";
+    @ResponseBody
+    public JSONObject edit(HttpServletRequest request) {
+        JSONObject resultJson = new JSONObject();
+        String errorMsg = "编辑进程信息：";
         String id = request.getParameter("id");
         AppInfo appInfo = new AppInfo();
         try {
             List<SystemInfo> systemInfoList = systemInfoService.selectAllByParams(new HashMap<>());
-            model.addAttribute("systemInfoList", systemInfoList);
-            if (StringUtils.isEmpty(id)) {
-                model.addAttribute("appInfo", appInfo);
-                return "app/add";
+            resultJson.put("systemInfoList", systemInfoList);
+            if (!StringUtils.isEmpty(id)) {
+                appInfo = appInfoService.selectById(id);
             }
-            appInfo = appInfoService.selectById(id);
-            model.addAttribute("appInfo", appInfo);
+            resultJson.put("appInfo", appInfo);
         } catch (Exception e) {
             logger.error(errorMsg, e);
             logInfoService.save(appInfo.getAppPid(), errorMsg + e.toString(), StaticKeys.LOG_ERROR);
+            resultJson.put("error",e.getMessage());
         }
-        return "app/add";
+        return resultJson;
     }
 
 
     /**
      * 查看该应用统计图
-     *
-     * @param model
      * @param request
      * @return
      */
     @RequestMapping(value = "view")
-    public String viewChart(Model model, HttpServletRequest request) {
+    @ResponseBody
+    public JSONObject viewChart(HttpServletRequest request) {
+        JSONObject resultJson = new JSONObject();
         String errorMsg = "查看进程统计图错误：";
         String id = request.getParameter("id");
         String date = request.getParameter("date");
         AppInfo appInfo = new AppInfo();
         try {
             appInfo = appInfoService.selectById(id);
-            Map<String, Object> params = new HashMap<String, Object>();
-            if (StringUtils.isEmpty(date)) {
-                date = DateUtil.getCurrentDate();
+            resultJson.put("appInfo", appInfo);
+
+            if(appInfo != null) {
+                Map<String, Object> params = new HashMap<String, Object>();
+                if (StringUtils.isEmpty(date)) {
+                    date = DateUtil.getCurrentDate();
+                }
+                dashboardService.setDateParam(date, params);
+                resultJson.put("datenow", date);
+                resultJson.put("dateList", dashboardService.getDateList());
+                params.put("appInfoId", appInfo.getId());
+                List<AppState> appStateList = appStateService.selectAllByParams(params);
+                resultJson.put("appStateList", JSONUtil.parseArray(appStateList));
             }
-            dashboardService.setDateParam(date, params);
-            model.addAttribute("datenow", date);
-            model.addAttribute("dateList", dashboardService.getDateList());
-            params.put("appInfoId", appInfo.getId());
-            model.addAttribute("appInfo", appInfo);
-            List<AppState> appStateList = appStateService.selectAllByParams(params);
-            model.addAttribute("appStateList", JSONUtil.parseArray(appStateList));
         } catch (Exception e) {
             logger.error(errorMsg, e);
-            logInfoService.save(appInfo.getHostname() + ":" + appInfo.getAppPid(), errorMsg + e.toString(), StaticKeys.LOG_ERROR);
+            if(appInfo != null){
+                logInfoService.save(appInfo.getHostname() + ":" + appInfo.getAppPid(), errorMsg + e.toString(), StaticKeys.LOG_ERROR);
+            }
+            resultJson.put("error",e.getMessage());
         }
-        return "app/view";
+        return resultJson;
     }
 
 
     /**
      * 删除进程
-     *
-     * @param id
-     * @param model
      * @param request
-     * @param redirectAttributes
      * @return
      */
     @RequestMapping(value = "del")
-    public String delete(Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
+    @ResponseBody
+    public JSONObject delete(HttpServletRequest request) {
+        JSONObject resultJson = new JSONObject();
         String errorMsg = "删除进程信息错误：";
         AppInfo appInfo = new AppInfo();
         try {
-            if (!StringUtils.isEmpty(request.getParameter("id"))) {
-                appInfo = appInfoService.selectById(request.getParameter("id"));
-                logInfoService.save("删除进程：" + appInfo.getHostname(), "删除进程：" + appInfo.getHostname() + "：" + appInfo.getAppPid(), StaticKeys.LOG_ERROR);
-                appInfoService.deleteById(request.getParameter("id").split(","));
+            String id = request.getParameter("id");
+            if (!StringUtils.isEmpty(id)) {
+                //批量删除只取第一个记录日志
+                appInfo = appInfoService.selectById(id.split(",")[0]);
+                if(appInfo != null){
+                    logInfoService.save("删除进程：" + appInfo.getHostname(), "删除进程：" + appInfo.getHostname() + "：" + appInfo.getAppPid(), StaticKeys.LOG_ERROR);
+                }
+                appInfoService.deleteById(id.split(","));
             }
+            resultJson.put("result","success");
         } catch (Exception e) {
             logger.error(errorMsg, e);
-            logInfoService.save(appInfo.getHostname() + ":" + appInfo.getAppPid(), errorMsg + e.toString(), StaticKeys.LOG_ERROR);
+            if(appInfo != null) {
+                logInfoService.save(appInfo.getHostname() + ":" + appInfo.getAppPid(), errorMsg + e.toString(), StaticKeys.LOG_ERROR);
+            }
+            resultJson.put("result","error");
+            resultJson.put("msg",e.getMessage());
         }
-
-        return "redirect:/appInfo/list";
+        return resultJson;
     }
 
 

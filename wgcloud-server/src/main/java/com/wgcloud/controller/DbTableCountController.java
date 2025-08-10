@@ -1,5 +1,6 @@
 package com.wgcloud.controller;
 
+import cn.hutool.json.JSONObject;
 import com.github.pagehelper.PageInfo;
 import com.wgcloud.entity.DbTableCount;
 import com.wgcloud.service.DbInfoService;
@@ -13,7 +14,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.annotation.Resource;
@@ -49,24 +52,22 @@ public class DbTableCountController {
     /**
      * 根据条件查询列表
      *
-     * @param model
-     * @param request
      * @return
      */
     @RequestMapping(value = "list")
-    public String dbTableCountList(DbTableCount dbTableCount, Model model) {
+    @ResponseBody
+    public JSONObject dbTableCountList(DbTableCount dbTableCount) {
+        JSONObject resultJson = new JSONObject();
         Map<String, Object> params = new HashMap<String, Object>();
         try {
             PageInfo pageInfo = dbTableCountService.selectByParams(params, dbTableCount.getPage(), dbTableCount.getPageSize());
-            PageUtil.initPageNumber(pageInfo, model);
-            model.addAttribute("pageUrl", "/dbTableCount/list?1=1");
-            model.addAttribute("page", pageInfo);
+            resultJson.put("page", pageInfo);
         } catch (Exception e) {
             logger.error("查询数据源表统计信息错误", e);
             logInfoService.save("查询数据源表统计信息错误", e.toString(), StaticKeys.LOG_ERROR);
-
+            resultJson.put("error", e.getMessage());
         }
-        return "dbTableCount/list";
+        return resultJson;
     }
 
 
@@ -74,46 +75,48 @@ public class DbTableCountController {
      * 保存数据源表统计信息
      *
      * @param DbTableCount
-     * @param model
-     * @param request
      * @return
      */
     @RequestMapping(value = "save")
-    public String saveDbTableCount(DbTableCount DbTableCount, Model model, HttpServletRequest request) {
+    @ResponseBody
+    public JSONObject saveDbTableCount(@RequestBody DbTableCount DbTableCount) {
+        JSONObject resultJson = new JSONObject();
         try {
             dbTableCountService.save(DbTableCount);
+            resultJson.put("result","success");
         } catch (Exception e) {
             logger.error("保存数据源表统计错误：", e);
             logInfoService.save("保存数据源表统计错误", e.toString(), StaticKeys.LOG_ERROR);
+            resultJson.put("result","error");
+            resultJson.put("msg",e.getMessage());
         }
-        return "redirect:/dbTableCount/list";
+        return resultJson;
     }
 
 
     /**
      * 删除数据源表统计
-     *
-     * @param id
-     * @param model
      * @param request
-     * @param redirectAttributes
      * @return
      */
     @RequestMapping(value = "del")
-    public String delete(Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
+    @ResponseBody
+    public JSONObject delete(HttpServletRequest request) {
+        JSONObject resultJson = new JSONObject();
         String errorMsg = "删除数据源表统计信息错误：";
-        DbTableCount DbTableCount = new DbTableCount();
         try {
-            if (!StringUtils.isEmpty(request.getParameter("id"))) {
-                DbTableCount = dbTableCountService.selectById(request.getParameter("id"));
-                dbTableCountService.deleteById(request.getParameter("id").split(","));
+            String id = request.getParameter("id");
+            if (!StringUtils.isEmpty(id)) {
+                dbTableCountService.deleteById(id.split(","));
             }
+            resultJson.put("result","success");
         } catch (Exception e) {
             logger.error(errorMsg, e);
             logInfoService.save(errorMsg, e.toString(), StaticKeys.LOG_ERROR);
+            resultJson.put("result","error");
+            resultJson.put("msg",e.getMessage());
         }
-
-        return "redirect:/dbTableCount/list";
+        return resultJson;
     }
 
 

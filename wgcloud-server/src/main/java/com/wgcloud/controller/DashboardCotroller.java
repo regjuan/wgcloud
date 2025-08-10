@@ -2,6 +2,7 @@ package com.wgcloud.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.json.JSONUtil;
+import cn.hutool.json.JSONObject;
 import com.github.pagehelper.PageInfo;
 import com.wgcloud.dto.ChartInfo;
 import com.wgcloud.dto.NetIoStateDto;
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.annotation.Resource;
@@ -74,19 +76,20 @@ public class DashboardCotroller {
     /**
      * 根据条件查询host列表
      *
-     * @param model
      * @param request
      * @return
      */
     @RequestMapping(value = "main")
-    public String mainList(Model model, HttpServletRequest request) {
+    @ResponseBody
+    public JSONObject mainList(HttpServletRequest request) {
+        JSONObject resultJson = new JSONObject();
         Map<String, Object> params = new HashMap<String, Object>();
         List<ChartInfo> chartInfoList = new ArrayList<ChartInfo>();
         try {
             int totalSystemInfoSize = systemInfoService.countByParams(params);
-            model.addAttribute("totalSystemInfoSize", totalSystemInfoSize);
+            resultJson.put("totalSystemInfoSize", totalSystemInfoSize);
             int totalSizeApp = appInfoService.countByParams(params);
-            model.addAttribute("totalSizeApp", totalSizeApp);
+            resultJson.put("totalSizeApp", totalSizeApp);
 
             params.put("memPer", 90);
             int memPerSize_90 = systemInfoService.countByParams(params);
@@ -153,47 +156,43 @@ public class DashboardCotroller {
             perSize_50_50_chart.setCount(perSize_50_50);
             perSize_50_50_chart.setPercent(FormatUtil.formatDouble(e, 2));
             chartInfoList.add(perSize_50_50_chart);
-            model.addAttribute("chartInfoList", JSONUtil.parseArray(chartInfoList));
+            resultJson.put("chartInfoList", JSONUtil.parseArray(chartInfoList));
             params.clear();
 
             params.put("cpuPer", 90);
             int memPerSizeApp = appInfoService.countByParams(params);
-            model.addAttribute("memPerSizeApp", memPerSizeApp);
+            resultJson.put("memPerSizeApp", memPerSizeApp);
             params.clear();
 
             int logSize = logInfoService.countByParams(params);
-            model.addAttribute("logSize", logSize);
+            resultJson.put("logSize", logSize);
 
             params.clear();
             int dbTableSize = dbTableService.countByParams(params);
-            model.addAttribute("dbTableSize", dbTableSize);
+            resultJson.put("dbTableSize", dbTableSize);
 
             Long dbTableSum = dbTableService.sumByParams(params);
-            model.addAttribute("dbTableSum", dbTableSum == null ? 0 : dbTableSum);
+            resultJson.put("dbTableSum", dbTableSum == null ? 0 : dbTableSum);
 
             PageInfo pageInfoDbTableList = dbTableService.selectByParams(params, 1, 10);
-            model.addAttribute("dbTableList", JSONUtil.parseArray(pageInfoDbTableList.getList()));
+            resultJson.put("dbTableList", JSONUtil.parseArray(pageInfoDbTableList.getList()));
 
             int dbInfoSize = dbInfoService.countByParams(params);
-            model.addAttribute("dbInfoSize", dbInfoSize);
+            resultJson.put("dbInfoSize", dbInfoSize);
 
             int heathSize = heathMonitorService.countByParams(params);
-            model.addAttribute("heathSize", heathSize);
+            resultJson.put("heathSize", heathSize);
             params.put("heathStatus", "200");
             int heath200Size = heathMonitorService.countByParams(params);
-            model.addAttribute("heath200Size", heath200Size);
-            model.addAttribute("heatherrSize", (heathSize - heath200Size));
+            resultJson.put("heath200Size", heath200Size);
+            resultJson.put("heatherrSize", (heathSize - heath200Size));
 
 
         } catch (Exception e) {
             logger.error("主面板信息异常：", e);
             logInfoService.save("dash/main", "主面板信息错误：" + e.toString(), StaticKeys.LOG_ERROR);
         }
-        if (request.getParameter(StaticKeys.DASH_VIEW_ACCOUNT) != null) {
-            return "dashView/index";
-        } else {
-            return "index";
-        }
+        return resultJson;
     }
 
     /**
@@ -204,13 +203,11 @@ public class DashboardCotroller {
      * @return
      */
     @RequestMapping(value = "systemInfoList")
-    public String systemInfoList(SystemInfo systemInfo, Model model, HttpServletRequest request) {
+    @ResponseBody
+    public JSONObject systemInfoList(SystemInfo systemInfo, HttpServletRequest request) {
+        JSONObject resultJson = new JSONObject();
         Map<String, Object> params = new HashMap<String, Object>();
         try {
-            StringBuffer url = new StringBuffer();
-            if (request.getParameter(StaticKeys.DASH_VIEW_ACCOUNT) != null) {
-                url.append("&dashView=1");
-            }
             PageInfo<SystemInfo> pageInfo = systemInfoService.selectByParams(params, systemInfo.getPage(), systemInfo.getPageSize());
 
             //设置磁盘总使用率 begin
@@ -235,19 +232,12 @@ public class DashboardCotroller {
                 }
             }
             //设置磁盘总使用率 end
-
-            PageUtil.initPageNumber(pageInfo, model);
-            model.addAttribute("pageUrl", "/dash/systemInfoList?1=1" + url.toString());
-            model.addAttribute("page", pageInfo);
+            resultJson.put("page", pageInfo);
         } catch (Exception e) {
             logger.error("查询服务器列表错误：", e);
             logInfoService.save("查询服务器列表错误", e.toString(), StaticKeys.LOG_ERROR);
         }
-        if (request.getParameter(StaticKeys.DASH_VIEW_ACCOUNT) != null) {
-            return "dashView/list";
-        } else {
-            return "host/list";
-        }
+        return resultJson;
     }
 
 
@@ -259,50 +249,52 @@ public class DashboardCotroller {
      * @return
      */
     @RequestMapping(value = "detail")
-    public String hostDetail(Model model, HttpServletRequest request) {
-        //服务器名称
+    @ResponseBody
+    public JSONObject hostDetail(HttpServletRequest request) {
+        JSONObject resultJson = new JSONObject();
         String id = request.getParameter("id");
         if (StringUtils.isEmpty(id)) {
-            return "error/500";
+            resultJson.put("error", "id is null");
+            return resultJson;
         }
         String hostname = "";
         try {
             SystemInfo systemInfo = systemInfoService.selectById(id);
-            hostname = systemInfo.getHostname();
-            model.addAttribute("systemInfo", systemInfo);
-            Map<String, Object> params = new HashMap<String, Object>();
-            params.put("hostname", systemInfo.getHostname());
-            List<DeskState> deskStateList = deskStateService.selectAllByParams(params);
-            model.addAttribute("deskStateList", deskStateList);
+            resultJson.put("systemInfo", systemInfo);
+            if(systemInfo != null){
+                hostname = systemInfo.getHostname();
+                Map<String, Object> params = new HashMap<String, Object>();
+                params.put("hostname", systemInfo.getHostname());
+                List<DeskState> deskStateList = deskStateService.selectAllByParams(params);
+                resultJson.put("deskStateList", deskStateList);
+            }
         } catch (Exception e) {
             logger.error("服务器详细信息错误：", e);
             logInfoService.save(hostname, "查看服务器详细信息错误", e.toString());
+            resultJson.put("error", e.getMessage());
         }
-        if (request.getParameter(StaticKeys.DASH_VIEW_ACCOUNT) != null) {
-            return "dashView/view";
-        } else {
-            return "host/view";
-        }
-
+        return resultJson;
     }
 
     /**
      * 删除主机
      *
-     * @param id
-     * @param model
      * @param request
-     * @param redirectAttributes
      * @return
      */
     @RequestMapping(value = "del")
-    public String delete(Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
+    @ResponseBody
+    public JSONObject delete(HttpServletRequest request) {
+        JSONObject resultJson = new JSONObject();
         String errorMsg = "删除主机信息错误：";
         try {
             if (!StringUtils.isEmpty(request.getParameter("id"))) {
                 String[] ids = request.getParameter("id").split(",");
                 for (String id : ids) {
                     SystemInfo sys = systemInfoService.selectById(id);
+                    if(sys == null) {
+                        continue;
+                    }
                     if (!StringUtils.isEmpty(sys.getHostname())) {
                         hostInfoService.deleteByIp(sys.getHostname().split(","));
                     }
@@ -310,65 +302,70 @@ public class DashboardCotroller {
                 }
                 systemInfoService.deleteById(ids);
             }
+            resultJson.put("result","success");
         } catch (Exception e) {
             logger.error(errorMsg, e);
             logInfoService.save(errorMsg, e.toString(), StaticKeys.LOG_ERROR);
+            resultJson.put("result","error");
+            resultJson.put("msg",e.getMessage());
         }
-        return "redirect:/dash/systemInfoList";
+        return resultJson;
     }
 
 
     /**
      * 根据IP查询服务器图形报表
      *
-     * @param model
      * @param request
      * @return
      */
     @RequestMapping(value = "chart")
-    public String hostChart(Model model, HttpServletRequest request) {
+    @ResponseBody
+    public JSONObject hostChart(HttpServletRequest request) {
+        JSONObject resultJson = new JSONObject();
         //服务器名称
         String id = request.getParameter("id");
         String date = request.getParameter("date");
         if (StringUtils.isEmpty(id)) {
-            return "error/500";
+            resultJson.put("error","id is null");
+            return resultJson;
         }
         String hostname = "";
         try {
             SystemInfo systemInfo = systemInfoService.selectById(id);
-            hostname = systemInfo.getHostname();
-            model.addAttribute("systemInfo", systemInfo);
-            Map<String, Object> params = new HashMap<String, Object>();
-            params.put("hostname", systemInfo.getHostname());
-            if (StringUtils.isEmpty(date)) {
-                date = DateUtil.getCurrentDate();
+            resultJson.put("systemInfo", systemInfo);
+
+            if(systemInfo != null) {
+                hostname = systemInfo.getHostname();
+                Map<String, Object> params = new HashMap<String, Object>();
+                params.put("hostname", systemInfo.getHostname());
+                if (StringUtils.isEmpty(date)) {
+                    date = DateUtil.getCurrentDate();
+                }
+                dashboardService.setDateParam(date, params);
+                resultJson.put("datenow", date);
+                resultJson.put("dateList", dashboardService.getDateList());
+                List<CpuState> cpuStateList = cpuStateService.selectAllByParams(params);
+                resultJson.put("cpuStateList", JSONUtil.parseArray(cpuStateList));
+                resultJson.put("cpuStateMaxVal", findCpuMaxVal(cpuStateList));
+                List<MemState> memStateList = memStateService.selectAllByParams(params);
+                resultJson.put("memStateList", JSONUtil.parseArray(memStateList));
+                List<SysLoadState> ysLoadSstateList = sysLoadStateService.selectAllByParams(params);
+                resultJson.put("ysLoadSstateList", JSONUtil.parseArray(ysLoadSstateList));
+                resultJson.put("ysLoadSstateMaxVal", findLoadMaxVal(ysLoadSstateList));
+                List<NetIoState> netIoStateList = netIoStateService.selectAllByParams(params);
+                List<NetIoStateDto> netIoStateDtoList = toNetIoStateDto(netIoStateList);
+                resultJson.put("netIoStateList", JSONUtil.parseArray(netIoStateDtoList));
+                resultJson.put("netIoStateBytMaxVal", findNetIoStateBytMaxVal(netIoStateDtoList));
+                resultJson.put("netIoStatePckMaxVal", findNetIoStatePckMaxVal(netIoStateDtoList));
             }
-            dashboardService.setDateParam(date, params);
-            model.addAttribute("datenow", date);
-            model.addAttribute("dateList", dashboardService.getDateList());
-            List<CpuState> cpuStateList = cpuStateService.selectAllByParams(params);
-            model.addAttribute("cpuStateList", JSONUtil.parseArray(cpuStateList));
-            model.addAttribute("cpuStateMaxVal", findCpuMaxVal(cpuStateList));
-            List<MemState> memStateList = memStateService.selectAllByParams(params);
-            model.addAttribute("memStateList", JSONUtil.parseArray(memStateList));
-            List<SysLoadState> ysLoadSstateList = sysLoadStateService.selectAllByParams(params);
-            model.addAttribute("ysLoadSstateList", JSONUtil.parseArray(ysLoadSstateList));
-            model.addAttribute("ysLoadSstateMaxVal", findLoadMaxVal(ysLoadSstateList));
-            List<NetIoState> netIoStateList = netIoStateService.selectAllByParams(params);
-            List<NetIoStateDto> netIoStateDtoList = toNetIoStateDto(netIoStateList);
-            model.addAttribute("netIoStateList", JSONUtil.parseArray(netIoStateDtoList));
-            model.addAttribute("netIoStateBytMaxVal", findNetIoStateBytMaxVal(netIoStateDtoList));
-            model.addAttribute("netIoStatePckMaxVal", findNetIoStatePckMaxVal(netIoStateDtoList));
 
         } catch (Exception e) {
             logger.error("服务器图形报表错误：", e);
             logInfoService.save(hostname, "图形报表错误", e.toString());
+            resultJson.put("error",e.getMessage());
         }
-        if (request.getParameter(StaticKeys.DASH_VIEW_ACCOUNT) != null) {
-            return "dashView/viewChart";
-        } else {
-            return "host/viewChart";
-        }
+        return resultJson;
     }
 
 

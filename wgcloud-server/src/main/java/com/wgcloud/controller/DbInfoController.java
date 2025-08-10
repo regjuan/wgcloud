@@ -1,6 +1,7 @@
 package com.wgcloud.controller;
 
 import cn.hutool.json.JSONUtil;
+import cn.hutool.json.JSONObject;
 import com.github.pagehelper.PageInfo;
 import com.wgcloud.dto.MessageDto;
 import com.wgcloud.entity.DbInfo;
@@ -16,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -82,51 +84,51 @@ public class DbInfoController {
     /**
      * 根据条件查询列表
      *
-     * @param model
-     * @param request
      * @return
      */
     @RequestMapping(value = "list")
-    public String DbInfoList(DbInfo DbInfo, Model model, HttpServletRequest request) {
+    @ResponseBody
+    public JSONObject DbInfoList(DbInfo DbInfo) {
+        JSONObject resultJson = new JSONObject();
         Map<String, Object> params = new HashMap<String, Object>();
         try {
             PageInfo pageInfo = dbInfoService.selectByParams(params, DbInfo.getPage(), DbInfo.getPageSize());
-            PageUtil.initPageNumber(pageInfo, model);
-            model.addAttribute("pageUrl", "/dbInfo/list?1=1");
-            model.addAttribute("page", pageInfo);
+            resultJson.put("page", pageInfo);
         } catch (Exception e) {
             logger.error("查询数据源信息错误", e);
             logInfoService.save("查询数据源信息错误", e.toString(), StaticKeys.LOG_ERROR);
-
+            resultJson.put("error", e.getMessage());
         }
-        return "mysql/dblist";
+        return resultJson;
     }
 
 
     /**
      * 添加
      *
-     * @param model
      * @param request
      * @return
      */
     @RequestMapping(value = "edit")
-    public String edit(Model model, HttpServletRequest request) {
-        String errorMsg = "添加数据源：";
+    @ResponseBody
+    public JSONObject edit(HttpServletRequest request) {
+        JSONObject resultJson = new JSONObject();
+        String errorMsg = "编辑数据源：";
         String id = request.getParameter("id");
         DbInfo dbInfo = new DbInfo();
         try {
-            if (StringUtils.isEmpty(id)) {
-                model.addAttribute("dbInfo", dbInfo);
-                return "mysql/init";
+            if (!StringUtils.isEmpty(id)) {
+                dbInfo = dbInfoService.selectById(id);
             }
-            dbInfo = dbInfoService.selectById(id);
-            model.addAttribute("dbInfo", dbInfo);
+            resultJson.put("dbInfo", dbInfo);
         } catch (Exception e) {
             logger.error(errorMsg, e);
-            logInfoService.save(dbInfo.getDbName(), errorMsg + e.toString(), StaticKeys.LOG_ERROR);
+            if(dbInfo != null) {
+                logInfoService.save(dbInfo.getDbName(), errorMsg + e.toString(), StaticKeys.LOG_ERROR);
+            }
+            resultJson.put("error", e.getMessage());
         }
-        return "mysql/init";
+        return resultJson;
     }
 
 
@@ -134,52 +136,59 @@ public class DbInfoController {
      * 保存数据源信息
      *
      * @param DbInfo
-     * @param model
-     * @param request
      * @return
      */
     @RequestMapping(value = "save")
-    public String saveDbInfo(DbInfo DbInfo, Model model, HttpServletRequest request) {
+    @ResponseBody
+    public JSONObject saveDbInfo(@RequestBody DbInfo DbInfo) {
+        JSONObject resultJson = new JSONObject();
         try {
             if (StringUtils.isEmpty(DbInfo.getId())) {
                 dbInfoService.save(DbInfo);
             } else {
                 dbInfoService.updateById(DbInfo);
             }
+            resultJson.put("result","success");
         } catch (Exception e) {
             logger.error("保存数据源错误：", e);
             logInfoService.save("保存数据源错误", e.toString(), StaticKeys.LOG_ERROR);
+            resultJson.put("result","error");
+            resultJson.put("msg",e.getMessage());
         }
-        return "redirect:/dbInfo/list?msg=save";
+        return resultJson;
     }
 
 
     /**
      * 删除数据源
-     *
-     * @param id
-     * @param model
      * @param request
-     * @param redirectAttributes
      * @return
      */
     @RequestMapping(value = "del")
-    public String delete(Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
+    @ResponseBody
+    public JSONObject delete(HttpServletRequest request) {
+        JSONObject resultJson = new JSONObject();
         String errorMsg = "删除数据源信息错误：";
-        DbInfo DbInfo = new DbInfo();
         try {
-            if (!StringUtils.isEmpty(request.getParameter("id"))) {
-                DbInfo = dbInfoService.selectById(request.getParameter("id"));
-                logInfoService.save("删除数据源：" + DbInfo.getAliasName(), "删除数据源：" + DbInfo.getIp() + "：" + DbInfo.getPort() +
-                        "，数据库别名" + DbInfo.getAliasName(), StaticKeys.LOG_ERROR);
-                dbInfoService.deleteById(request.getParameter("id").split(","));
-                dbTableService.deleteByDbInfoId(DbInfo.getId());
+            String id = request.getParameter("id");
+            if (!StringUtils.isEmpty(id)) {
+                //批量删除时，日志仅记录第一个
+                DbInfo DbInfo = dbInfoService.selectById(id.split(",")[0]);
+                if(DbInfo != null) {
+                    logInfoService.save("删除数据源：" + DbInfo.getAliasName(), "删除数据源：" + DbInfo.getIp() + "：" + DbInfo.getPort() +
+                            "，数据库别名" + DbInfo.getAliasName(), StaticKeys.LOG_ERROR);
+                    dbTableService.deleteByDbInfoId(DbInfo.getId());
+                }
+                dbInfoService.deleteById(id.split(","));
             }
+            resultJson.put("result","success");
         } catch (Exception e) {
             logger.error(errorMsg, e);
             logInfoService.save(errorMsg, e.toString(), StaticKeys.LOG_ERROR);
+            resultJson.put("result","error");
+            resultJson.put("msg",e.getMessage());
         }
-        return "redirect:/dbInfo/list?msg=del";
+        return resultJson;
     }
 
 

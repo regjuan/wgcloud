@@ -1,5 +1,6 @@
 package com.wgcloud.controller;
 
+import cn.hutool.json.JSONObject;
 import com.github.pagehelper.PageInfo;
 import com.wgcloud.entity.LogInfo;
 import com.wgcloud.service.LogInfoService;
@@ -11,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -38,52 +40,49 @@ public class LogInfoController {
     /**
      * 根据条件查询日志信息列表
      *
-     * @param model
-     * @param request
      * @return
      */
     @RequestMapping(value = "list")
-    public String LogInfoList(LogInfo logInfo, Model model) {
+    @ResponseBody
+    public JSONObject LogInfoList(LogInfo logInfo) {
+        JSONObject resultJson = new JSONObject();
         Map<String, Object> params = new HashMap<String, Object>();
         try {
-            StringBuffer url = new StringBuffer();
             String hostname = null;
             if (!StringUtils.isEmpty(logInfo.getHostname())) {
                 hostname = CodeUtil.unescape(logInfo.getHostname());
                 params.put("hostname", hostname.trim());
-                url.append("&hostname=").append(CodeUtil.escape(hostname));
             }
             PageInfo pageInfo = logInfoService.selectByParams(params, logInfo.getPage(), logInfo.getPageSize());
-            PageUtil.initPageNumber(pageInfo, model);
-
-            model.addAttribute("pageUrl", "/log/list?1=1" + url.toString());
-            model.addAttribute("page", pageInfo);
-            model.addAttribute("logInfo", logInfo);
+            resultJson.put("page", pageInfo);
+            resultJson.put("logInfo", logInfo);
         } catch (Exception e) {
             logger.error("查询日志错误", e);
+            resultJson.put("error", e.getMessage());
         }
-        return "log/list";
+        return resultJson;
     }
 
     /**
      * 查看日志信息
      *
-     * @param LogInfo
-     * @param model
      * @param request
      * @return
      */
     @RequestMapping(value = "view")
-    public String viewLogInfo(Model model, HttpServletRequest request) {
+    @ResponseBody
+    public JSONObject viewLogInfo(HttpServletRequest request) {
+        JSONObject resultJson = new JSONObject();
         String id = request.getParameter("id");
         LogInfo logInfo;
         try {
             logInfo = logInfoService.selectById(id);
-            model.addAttribute("logInfo", logInfo);
+            resultJson.put("logInfo", logInfo);
         } catch (Exception e) {
             logger.error("查看日志信息：", e);
+            resultJson.put("error", e.getMessage());
         }
-        return "log/view";
+        return resultJson;
     }
 
 }
