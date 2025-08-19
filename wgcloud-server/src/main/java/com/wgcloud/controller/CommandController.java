@@ -1,6 +1,7 @@
 package com.wgcloud.controller;
 
 import com.github.pagehelper.PageInfo;
+import com.wgcloud.common.AjaxResult;
 import com.wgcloud.entity.Command;
 import com.wgcloud.entity.Tag;
 import com.wgcloud.service.CommandService;
@@ -32,27 +33,23 @@ public class CommandController {
 
     @RequestMapping(value = "list")
     @ResponseBody
-    public cn.hutool.json.JSONObject list(Command command) {
-        cn.hutool.json.JSONObject resultJson = new cn.hutool.json.JSONObject();
+    public AjaxResult list(@RequestBody Command command) {
         Map<String, Object> params = new HashMap<>();
         try {
             if (!StringUtils.isEmpty(command.getCmdName())) {
                 params.put("cmdName", command.getCmdName());
             }
             PageInfo<Command> pageInfo = commandService.selectByParams(params, command.getPage(), command.getPageSize());
-            resultJson.put("page", pageInfo);
-            resultJson.put("command", command);
+            return AjaxResult.success(pageInfo);
         } catch (Exception e) {
             logger.error("查询指令列表错误", e);
-            resultJson.put("error", e.getMessage());
+            return AjaxResult.error("查询指令列表错误");
         }
-        return resultJson;
     }
 
     @RequestMapping(value = "edit")
     @ResponseBody
-    public cn.hutool.json.JSONObject edit(HttpServletRequest request) {
-        cn.hutool.json.JSONObject resultJson = new cn.hutool.json.JSONObject();
+    public AjaxResult edit(HttpServletRequest request) {
         String id = request.getParameter("id");
         Command command = new Command();
         try {
@@ -60,49 +57,44 @@ public class CommandController {
                 command = commandService.selectById(id);
             }
             List<Tag> allTags = tagService.selectAllByParams(new HashMap<>());
-            resultJson.put("command", command);
-            resultJson.put("allTags", allTags);
+            Map<String, Object> data = new HashMap<>();
+            data.put("command", command);
+            data.put("allTags", allTags);
+            return AjaxResult.success(data);
         } catch (Exception e) {
             logger.error("编辑指令错误", e);
-            resultJson.put("error", e.getMessage());
+            return AjaxResult.error("编辑指令错误");
         }
-        return resultJson;
     }
 
     @RequestMapping(value = "save")
     @ResponseBody
-    public cn.hutool.json.JSONObject save(@RequestBody Command command) {
-        cn.hutool.json.JSONObject resultJson = new cn.hutool.json.JSONObject();
+    public AjaxResult save(@RequestBody Command command) {
         try {
             if (StringUtils.isEmpty(command.getId())) {
                 commandService.save(command);
             } else {
                 commandService.updateById(command);
             }
-            resultJson.put("result", "success");
+            return AjaxResult.success();
         } catch (Exception e) {
             logger.error("保存指令错误", e);
-            resultJson.put("result", "error");
-            resultJson.put("msg", e.getMessage());
+            return AjaxResult.error(e.getMessage());
         }
-        return resultJson;
     }
 
     @RequestMapping(value = "del")
     @ResponseBody
-    public cn.hutool.json.JSONObject delete(HttpServletRequest request) {
-        cn.hutool.json.JSONObject resultJson = new cn.hutool.json.JSONObject();
+    public AjaxResult delete(HttpServletRequest request) {
         try {
             String id = request.getParameter("id");
             if (!StringUtils.isEmpty(id)) {
                 commandService.deleteById(id.split(","));
             }
-            resultJson.put("result", "success");
+            return AjaxResult.success();
         } catch (Exception e) {
             logger.error("删除指令错误", e);
-            resultJson.put("result", "error");
-            resultJson.put("msg", e.getMessage());
+            return AjaxResult.error(e.getMessage());
         }
-        return resultJson;
     }
 }

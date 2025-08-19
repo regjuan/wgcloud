@@ -1,12 +1,14 @@
 package com.wgcloud.controller;
 
 import com.github.pagehelper.PageInfo;
+import com.wgcloud.common.AjaxResult;
 import com.wgcloud.entity.CommandResult;
 import com.wgcloud.service.CommandResultService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -26,8 +28,7 @@ public class CommandResultController {
 
     @RequestMapping(value = "list")
     @ResponseBody
-    public cn.hutool.json.JSONObject list(CommandResult commandResult) {
-        cn.hutool.json.JSONObject resultJson = new cn.hutool.json.JSONObject();
+    public AjaxResult list(@RequestBody CommandResult commandResult) {
         Map<String, Object> params = new HashMap<>();
         try {
             if (!StringUtils.isEmpty(commandResult.getHostname())) {
@@ -37,30 +38,25 @@ public class CommandResultController {
                 params.put("status", commandResult.getStatus());
             }
             PageInfo<CommandResult> pageInfo = commandResultService.selectByParams(params, commandResult.getPage(), commandResult.getPageSize());
-            resultJson.put("page", pageInfo);
-            resultJson.put("commandResult", commandResult);
+            return AjaxResult.success(pageInfo);
         } catch (Exception e) {
             logger.error("查询指令执行结果列表错误", e);
-            resultJson.put("error", e.getMessage());
+            return AjaxResult.error("查询指令执行结果列表错误");
         }
-        return resultJson;
     }
 
     @RequestMapping(value = "del")
     @ResponseBody
-    public cn.hutool.json.JSONObject delete(HttpServletRequest request) {
-        cn.hutool.json.JSONObject resultJson = new cn.hutool.json.JSONObject();
+    public AjaxResult delete(HttpServletRequest request) {
         try {
             String id = request.getParameter("id");
             if (!StringUtils.isEmpty(id)) {
                 commandResultService.deleteById(id.split(","));
             }
-            resultJson.put("result", "success");
+            return AjaxResult.success();
         } catch (Exception e) {
             logger.error("删除指令执行结果错误", e);
-            resultJson.put("result", "error");
-            resultJson.put("msg", e.getMessage());
+            return AjaxResult.error(e.getMessage());
         }
-        return resultJson;
     }
 }
