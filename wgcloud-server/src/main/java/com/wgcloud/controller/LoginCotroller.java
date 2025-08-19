@@ -2,18 +2,18 @@ package com.wgcloud.controller;
 
 import com.wgcloud.config.CommonConfig;
 import com.wgcloud.entity.AccountInfo;
+import com.wgcloud.util.JwtUtil;
 import com.wgcloud.util.shorturl.MD5;
 import com.wgcloud.util.staticvar.StaticKeys;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @version v2.3
@@ -23,8 +23,8 @@ import javax.servlet.http.HttpSession;
  * @Description: LoginCotroller.java
  * @Copyright: 2017-2024 wgcloud. All rights reserved.
  */
-@Controller
-@RequestMapping(value = "/login")
+@RestController
+@RequestMapping(value = "/api/login")
 public class LoginCotroller {
 
     private static final Logger logger = LoggerFactory.getLogger(LoginCotroller.class);
@@ -32,65 +32,31 @@ public class LoginCotroller {
     @Resource
     private CommonConfig commonConfig;
 
-    /**
-     * 转向到登录页面
-     *
-     * @param model
-     * @param request
-     * @return
-     */
-    @RequestMapping("toLogin")
-    public String toLogin(Model model, HttpServletRequest request) {
-        return "login/login";
-    }
+    @Autowired
+    private JwtUtil jwtUtil;
 
-    /**
-     * 登出系统
-     *
-     * @param model
-     * @param request
-     * @return
-     */
-    @RequestMapping("loginOut")
-    public String loginOut(Model model, HttpServletRequest request) {
-        HttpSession session = request.getSession();
-        session.invalidate();
-        return "redirect:/login/toLogin";
-    }
+    @PostMapping
+    public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
+        String userName = loginRequest.get("account");
+        String passwd = loginRequest.get("password");
 
-    /**
-     * 管理员登录验证
-     *
-     * @param model
-     * @param request
-     * @return
-     */
-    @RequestMapping(value = "login")
-    public String login(Model model, HttpServletRequest request) {
-        String userName = request.getParameter("userName");
-        String passwd = request.getParameter("md5pwd");
-//        String code = request.getParameter(StaticKeys.SESSION_CODE);
-        HttpSession session = request.getSession();
         try {
-            if (!StringUtils.isEmpty(userName) && !StringUtils.isEmpty(passwd)) {
-                /*if (!code.equals(session.getAttribute(StaticKeys.SESSION_CODE))) {
-                    model.addAttribute("error", "验证码错误");
-                    return "login/login";
-                }*/
-                AccountInfo accountInfo = new AccountInfo();
-                if (MD5.GetMD5Code(commonConfig.getAdmindPwd()).equals(passwd) && StaticKeys.ADMIN_ACCOUNT.equals(userName)) {
-                    accountInfo.setAccount(StaticKeys.ADMIN_ACCOUNT);
-                    accountInfo.setId(StaticKeys.ADMIN_ACCOUNT);
-                    request.getSession().setAttribute(StaticKeys.LOGIN_KEY, accountInfo);
-                    return "redirect:/dash/main";
-                }
+            String a = MD5.GetMD5Code(commonConfig.getAdmindPwd());
+            Boolean b = a.equals(passwd);
+            if (MD5.GetMD5Code(commonConfig.getAdmindPwd()).equals(passwd) && StaticKeys.ADMIN_ACCOUNT.equals(userName)) {
+                final String token = jwtUtil.generateToken(userName);
+                Map<String, Object> response = new HashMap<>();
+                response.put("token", token);
+                response.put("message", "Login successful");
+                logger.info("User {} logged in successfully.", userName);
+                return ResponseEntity.ok(response);
+            } else {
+                logger.warn("Login failed for user {}. Invalid credentials.", userName);
+                return ResponseEntity.status(401).body("Invalid credentials");
             }
         } catch (Exception e) {
-            logger.error("登录异常：", e);
+            logger.error("Authentication error for user {}:", userName, e);
+            return ResponseEntity.status(500).body("Authentication error");
         }
-        model.addAttribute("error", "帐号或者密码错误");
-        return "login/login";
     }
-
-
 }

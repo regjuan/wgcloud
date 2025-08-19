@@ -1,9 +1,8 @@
 package com.wgcloud.filter;
 
 
-import com.wgcloud.config.CommonConfig;
-import com.wgcloud.entity.AccountInfo;
-import com.wgcloud.util.staticvar.StaticKeys;
+import com.wgcloud.util.JwtUtil;
+import io.jsonwebtoken.ExpiredJwtException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +11,6 @@ import javax.servlet.*;
 import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import java.io.IOException;
 
 /**
@@ -23,93 +21,64 @@ import java.io.IOException;
  * @Description: http请求过滤器，拦截不是从路由过来的请求
  * @Copyright: 2017-2024 wgcloud. All rights reserved.
  */
-@WebFilter(filterName = "authRestFilter", urlPatterns = {"/*"})
+@WebFilter(filterName = "authRestFilter", urlPatterns = {"/api/*"})
 public class AuthRestFilter implements Filter {
 
     static Logger log = LoggerFactory.getLogger(AuthRestFilter.class);
 
     @Autowired
-    CommonConfig commonConfig;
+    private JwtUtil jwtUtil;
 
-    String[] static_resource = {"/agent/minTask", "/login/toLogin", "/login/login", "/appInfo/agentList", "/static/"};
-
-    String[] dash_views = {"/dash/main", "/dash/systemInfoList", "/dash/detail", "/dash/chart"};
+    private final String[] whitelist = {"/api/login"};
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
-        final HttpServletResponse response = (HttpServletResponse) servletResponse;
         final HttpServletRequest request = (HttpServletRequest) servletRequest;
-        final HttpSession session = request.getSession();
-        AccountInfo accountInfo = (AccountInfo) session.getAttribute(StaticKeys.LOGIN_KEY);
-        String uri = request.getRequestURI();
-        log.debug("uri----" + uri);
+        final HttpServletResponse response = (HttpServletResponse) servletResponse;
         String servletPath = request.getServletPath();
-        log.debug("servletPath----" + servletPath);
-        menuActive(session, uri);
-        for (String ss : static_resource) {
-            if (servletPath.startsWith(ss)) {
-                filterChain.doFilter(servletRequest, servletResponse);
+
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        for (String path : whitelist) {
+            if (servletPath.equals(path)) {
+                filterChain.doFilter(request, response);
                 return;
             }
         }
-        if (accountInfo == null) {
-            for (String ss : dash_views) {
-                if (servletPath.startsWith(ss) && "true".equals(commonConfig.getDashView()) && request.getParameter(StaticKeys.DASH_VIEW_ACCOUNT) != null) {
-                    filterChain.doFilter(servletRequest, servletResponse);
-                    return;
-                }
+
+        final String authHeader = request.getHeader("Authorization");
+        String username = null;
+        String jwt = null;
+
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            jwt = authHeader.substring(7);
+            try {
+                username = jwtUtil.extractUsername(jwt);
+            } catch (ExpiredJwtException e) {
+                log.warn("JWT Token has expired: {}", e.getMessage());
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"error\":\"Token has expired\"}");
+                return;
+            } catch (Exception e) {
+                log.error("Error parsing JWT token", e);
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"error\":\"Invalid token\"}");
+                return;
             }
         }
-        if (accountInfo == null) {
-            response.sendRedirect("/wgcloud/login/toLogin");
-            return;
+
+        if (username != null && jwtUtil.validateToken(jwt, username)) {
+            filterChain.doFilter(request, response);
+        } else {
+            log.warn("Invalid or missing token for path: {}", servletPath);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"error\":\"Missing or invalid Authorization header\"}");
         }
-        filterChain.doFilter(servletRequest, servletResponse);
     }
-
-
-    /**
-     * 添加菜单标识
-     *
-     * @param session
-     * @param uri
-     */
-    public void menuActive(HttpSession session, String uri) {
-        if (uri.indexOf("/log/") > -1) {
-            session.setAttribute("menuActive", "21");
-            return;
-        }
-        if (uri.indexOf("/dash/main") > -1) {
-            session.setAttribute("menuActive", "11");
-            return;
-        }
-        if (uri.indexOf("/dash/systemInfoList") > -1 || uri.indexOf("/dash/detail") > -1 || uri.indexOf("/dash/chart") > -1) {
-            session.setAttribute("menuActive", "12");
-            return;
-        }
-        if (uri.indexOf("/appInfo") > -1) {
-            session.setAttribute("menuActive", "13");
-            return;
-        }
-        if (uri.indexOf("/mailset") > -1) {
-            session.setAttribute("menuActive", "31");
-            return;
-        }
-        if (uri.indexOf("/dbInfo") > -1) {
-            session.setAttribute("menuActive", "41");
-            return;
-        }
-        if (uri.indexOf("/dbTable") > -1) {
-            session.setAttribute("menuActive", "42");
-            return;
-        }
-        if (uri.indexOf("/heathMonitor") > -1) {
-            session.setAttribute("menuActive", "51");
-            return;
-        }
-        session.setAttribute("menuActive", "11");
-        return;
-
-    }
-
 }

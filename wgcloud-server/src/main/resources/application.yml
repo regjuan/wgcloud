@@ -4,6 +4,12 @@ server:
     session:
       timeout: 120m
     context-path: /wgcloud
+
+# jwt 配置
+jwt:
+  secret: z1OrOObEDnUyxDAviK/4hjbGNy8Jx5MQtj5XSx5Lgdt+ARx7bnvBIw4j8lZaGdkoCgko2NgE4pypnE0LCTGD+g==
+  expiration: 10
+
 #日志文件输出路径
 logging:
   file:
