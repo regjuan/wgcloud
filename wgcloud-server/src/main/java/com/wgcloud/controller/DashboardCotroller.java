@@ -1,26 +1,22 @@
 package com.wgcloud.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
-import cn.hutool.json.JSONUtil;
-import cn.hutool.json.JSONObject;
 import com.github.pagehelper.PageInfo;
+import com.wgcloud.common.AjaxResult;
 import com.wgcloud.dto.ChartInfo;
 import com.wgcloud.dto.NetIoStateDto;
 import com.wgcloud.entity.*;
 import com.wgcloud.service.*;
 import com.wgcloud.util.DateUtil;
 import com.wgcloud.util.FormatUtil;
-import com.wgcloud.util.PageUtil;
 import com.wgcloud.util.staticvar.StaticKeys;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -81,15 +77,15 @@ public class DashboardCotroller {
      */
     @RequestMapping(value = "main")
     @ResponseBody
-    public JSONObject mainList(HttpServletRequest request) {
-        JSONObject resultJson = new JSONObject();
+    public AjaxResult mainList(HttpServletRequest request) {
+        Map<String, Object> data = new HashMap<>();
         Map<String, Object> params = new HashMap<String, Object>();
         List<ChartInfo> chartInfoList = new ArrayList<ChartInfo>();
         try {
             int totalSystemInfoSize = systemInfoService.countByParams(params);
-            resultJson.put("totalSystemInfoSize", totalSystemInfoSize);
+            data.put("totalSystemInfoSize", totalSystemInfoSize);
             int totalSizeApp = appInfoService.countByParams(params);
-            resultJson.put("totalSizeApp", totalSizeApp);
+            data.put("totalSizeApp", totalSizeApp);
 
             params.put("memPer", 90);
             int memPerSize_90 = systemInfoService.countByParams(params);
@@ -156,56 +152,55 @@ public class DashboardCotroller {
             perSize_50_50_chart.setCount(perSize_50_50);
             perSize_50_50_chart.setPercent(FormatUtil.formatDouble(e, 2));
             chartInfoList.add(perSize_50_50_chart);
-            resultJson.put("chartInfoList", JSONUtil.parseArray(chartInfoList));
+            data.put("chartInfoList", chartInfoList);
             params.clear();
 
             params.put("cpuPer", 90);
             int memPerSizeApp = appInfoService.countByParams(params);
-            resultJson.put("memPerSizeApp", memPerSizeApp);
+            data.put("memPerSizeApp", memPerSizeApp);
             params.clear();
 
             int logSize = logInfoService.countByParams(params);
-            resultJson.put("logSize", logSize);
+            data.put("logSize", logSize);
 
             params.clear();
             int dbTableSize = dbTableService.countByParams(params);
-            resultJson.put("dbTableSize", dbTableSize);
+            data.put("dbTableSize", dbTableSize);
 
             Long dbTableSum = dbTableService.sumByParams(params);
-            resultJson.put("dbTableSum", dbTableSum == null ? 0 : dbTableSum);
+            data.put("dbTableSum", dbTableSum == null ? 0 : dbTableSum);
 
             PageInfo pageInfoDbTableList = dbTableService.selectByParams(params, 1, 10);
-            resultJson.put("dbTableList", JSONUtil.parseArray(pageInfoDbTableList.getList()));
+            data.put("dbTableList", pageInfoDbTableList.getList());
 
             int dbInfoSize = dbInfoService.countByParams(params);
-            resultJson.put("dbInfoSize", dbInfoSize);
+            data.put("dbInfoSize", dbInfoSize);
 
             int heathSize = heathMonitorService.countByParams(params);
-            resultJson.put("heathSize", heathSize);
+            data.put("heathSize", heathSize);
             params.put("heathStatus", "200");
             int heath200Size = heathMonitorService.countByParams(params);
-            resultJson.put("heath200Size", heath200Size);
-            resultJson.put("heatherrSize", (heathSize - heath200Size));
+            data.put("heath200Size", heath200Size);
+            data.put("heatherrSize", (heathSize - heath200Size));
 
 
+            return AjaxResult.success(data);
         } catch (Exception e) {
             logger.error("主面板信息异常：", e);
             logInfoService.save("dash/main", "主面板信息错误：" + e.toString(), StaticKeys.LOG_ERROR);
+            return AjaxResult.error("主面板信息获取失败");
         }
-        return resultJson;
     }
 
     /**
      * 根据条件查询host列表
      *
-     * @param model
      * @param request
      * @return
      */
     @RequestMapping(value = "systemInfoList")
     @ResponseBody
-    public JSONObject systemInfoList(SystemInfo systemInfo, HttpServletRequest request) {
-        JSONObject resultJson = new JSONObject();
+    public AjaxResult systemInfoList(SystemInfo systemInfo, HttpServletRequest request) {
         Map<String, Object> params = new HashMap<String, Object>();
         try {
             PageInfo<SystemInfo> pageInfo = systemInfoService.selectByParams(params, systemInfo.getPage(), systemInfo.getPageSize());
@@ -232,48 +227,46 @@ public class DashboardCotroller {
                 }
             }
             //设置磁盘总使用率 end
-            resultJson.put("page", pageInfo);
+            return AjaxResult.success(pageInfo);
         } catch (Exception e) {
             logger.error("查询服务器列表错误：", e);
             logInfoService.save("查询服务器列表错误", e.toString(), StaticKeys.LOG_ERROR);
+            return AjaxResult.error("查询服务器列表错误");
         }
-        return resultJson;
     }
 
 
     /**
      * 根据IP查询服务器详情信息
      *
-     * @param model
      * @param request
      * @return
      */
     @RequestMapping(value = "detail")
     @ResponseBody
-    public JSONObject hostDetail(HttpServletRequest request) {
-        JSONObject resultJson = new JSONObject();
+    public AjaxResult hostDetail(HttpServletRequest request) {
         String id = request.getParameter("id");
         if (StringUtils.isEmpty(id)) {
-            resultJson.put("error", "id is null");
-            return resultJson;
+            return AjaxResult.error("id is null");
         }
         String hostname = "";
         try {
+            Map<String, Object> data = new HashMap<>();
             SystemInfo systemInfo = systemInfoService.selectById(id);
-            resultJson.put("systemInfo", systemInfo);
+            data.put("systemInfo", systemInfo);
             if(systemInfo != null){
                 hostname = systemInfo.getHostname();
                 Map<String, Object> params = new HashMap<String, Object>();
                 params.put("hostname", systemInfo.getHostname());
                 List<DeskState> deskStateList = deskStateService.selectAllByParams(params);
-                resultJson.put("deskStateList", deskStateList);
+                data.put("deskStateList", deskStateList);
             }
+            return AjaxResult.success(data);
         } catch (Exception e) {
             logger.error("服务器详细信息错误：", e);
             logInfoService.save(hostname, "查看服务器详细信息错误", e.toString());
-            resultJson.put("error", e.getMessage());
+            return AjaxResult.error("获取服务器详细信息错误");
         }
-        return resultJson;
     }
 
     /**
@@ -284,8 +277,7 @@ public class DashboardCotroller {
      */
     @RequestMapping(value = "del")
     @ResponseBody
-    public JSONObject delete(HttpServletRequest request) {
-        JSONObject resultJson = new JSONObject();
+    public AjaxResult delete(HttpServletRequest request) {
         String errorMsg = "删除主机信息错误：";
         try {
             if (!StringUtils.isEmpty(request.getParameter("id"))) {
@@ -302,14 +294,12 @@ public class DashboardCotroller {
                 }
                 systemInfoService.deleteById(ids);
             }
-            resultJson.put("result","success");
+            return AjaxResult.success();
         } catch (Exception e) {
             logger.error(errorMsg, e);
             logInfoService.save(errorMsg, e.toString(), StaticKeys.LOG_ERROR);
-            resultJson.put("result","error");
-            resultJson.put("msg",e.getMessage());
+            return AjaxResult.error(e.getMessage());
         }
-        return resultJson;
     }
 
 
@@ -321,19 +311,17 @@ public class DashboardCotroller {
      */
     @RequestMapping(value = "chart")
     @ResponseBody
-    public JSONObject hostChart(HttpServletRequest request) {
-        JSONObject resultJson = new JSONObject();
-        //服务器名称
+    public AjaxResult hostChart(HttpServletRequest request) {
         String id = request.getParameter("id");
-        String date = request.getParameter("date");
         if (StringUtils.isEmpty(id)) {
-            resultJson.put("error","id is null");
-            return resultJson;
+            return AjaxResult.error("id is null");
         }
+        String date = request.getParameter("date");
         String hostname = "";
         try {
+            Map<String, Object> data = new HashMap<>();
             SystemInfo systemInfo = systemInfoService.selectById(id);
-            resultJson.put("systemInfo", systemInfo);
+            data.put("systemInfo", systemInfo);
 
             if(systemInfo != null) {
                 hostname = systemInfo.getHostname();
@@ -343,29 +331,28 @@ public class DashboardCotroller {
                     date = DateUtil.getCurrentDate();
                 }
                 dashboardService.setDateParam(date, params);
-                resultJson.put("datenow", date);
-                resultJson.put("dateList", dashboardService.getDateList());
+                data.put("datenow", date);
+                data.put("dateList", dashboardService.getDateList());
                 List<CpuState> cpuStateList = cpuStateService.selectAllByParams(params);
-                resultJson.put("cpuStateList", JSONUtil.parseArray(cpuStateList));
-                resultJson.put("cpuStateMaxVal", findCpuMaxVal(cpuStateList));
+                data.put("cpuStateList", cpuStateList);
+                data.put("cpuStateMaxVal", findCpuMaxVal(cpuStateList));
                 List<MemState> memStateList = memStateService.selectAllByParams(params);
-                resultJson.put("memStateList", JSONUtil.parseArray(memStateList));
+                data.put("memStateList", memStateList);
                 List<SysLoadState> ysLoadSstateList = sysLoadStateService.selectAllByParams(params);
-                resultJson.put("ysLoadSstateList", JSONUtil.parseArray(ysLoadSstateList));
-                resultJson.put("ysLoadSstateMaxVal", findLoadMaxVal(ysLoadSstateList));
+                data.put("ysLoadSstateList", ysLoadSstateList);
+                data.put("ysLoadSstateMaxVal", findLoadMaxVal(ysLoadSstateList));
                 List<NetIoState> netIoStateList = netIoStateService.selectAllByParams(params);
                 List<NetIoStateDto> netIoStateDtoList = toNetIoStateDto(netIoStateList);
-                resultJson.put("netIoStateList", JSONUtil.parseArray(netIoStateDtoList));
-                resultJson.put("netIoStateBytMaxVal", findNetIoStateBytMaxVal(netIoStateDtoList));
-                resultJson.put("netIoStatePckMaxVal", findNetIoStatePckMaxVal(netIoStateDtoList));
+                data.put("netIoStateList", netIoStateDtoList);
+                data.put("netIoStateBytMaxVal", findNetIoStateBytMaxVal(netIoStateDtoList));
+                data.put("netIoStatePckMaxVal", findNetIoStatePckMaxVal(netIoStateDtoList));
             }
-
+            return AjaxResult.success(data);
         } catch (Exception e) {
             logger.error("服务器图形报表错误：", e);
             logInfoService.save(hostname, "图形报表错误", e.toString());
-            resultJson.put("error",e.getMessage());
+            return AjaxResult.error("获取服务器图形报表错误");
         }
-        return resultJson;
     }
 
 

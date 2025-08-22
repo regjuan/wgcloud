@@ -1,6 +1,6 @@
 package com.wgcloud.controller;
 
-import cn.hutool.json.JSONObject;
+import com.wgcloud.common.AjaxResult;
 import com.wgcloud.entity.SystemInfo;
 import com.wgcloud.service.LogInfoService;
 import com.wgcloud.service.SystemInfoService;
@@ -9,13 +9,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @version v2.3
@@ -46,8 +44,7 @@ public class HostInfoController {
      */
     @RequestMapping(value = "save")
     @ResponseBody
-    public JSONObject saveHostInfo(@RequestBody SystemInfo systemInfo) {
-        JSONObject resultJson = new JSONObject();
+    public AjaxResult saveHostInfo(@RequestBody SystemInfo systemInfo) {
         try {
             //备注信息是更新，不是新增
             if (!StringUtils.isEmpty(systemInfo.getId())) {
@@ -55,14 +52,12 @@ public class HostInfoController {
                 ho.setRemark(systemInfo.getRemark());
                 systemInfoService.updateById(ho);
             }
-             resultJson.put("result","success");
+             return AjaxResult.success();
         } catch (Exception e) {
             logger.error("保存主机备注信息错误：", e);
             logInfoService.save(systemInfo.getHostname(), "保存主机备注信息错误：" + e.toString(), StaticKeys.LOG_ERROR);
-            resultJson.put("result","error");
-            resultJson.put("msg",e.getMessage());
+            return AjaxResult.error(e.getMessage());
         }
-        return resultJson;
     }
 
 

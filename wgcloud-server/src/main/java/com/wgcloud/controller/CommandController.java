@@ -10,8 +10,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.Resource;
@@ -31,7 +34,7 @@ public class CommandController {
     @Resource
     private TagService tagService;
 
-    @RequestMapping(value = "list")
+    @RequestMapping(value = "list", method = RequestMethod.POST)
     @ResponseBody
     public AjaxResult list(@RequestBody Command command) {
         Map<String, Object> params = new HashMap<>();
@@ -47,9 +50,9 @@ public class CommandController {
         }
     }
 
-    @RequestMapping(value = "edit")
+    @RequestMapping(value = "info", method = RequestMethod.GET)
     @ResponseBody
-    public AjaxResult edit(HttpServletRequest request) {
+    public AjaxResult info(HttpServletRequest request) {
         String id = request.getParameter("id");
         Command command = new Command();
         try {
@@ -67,7 +70,7 @@ public class CommandController {
         }
     }
 
-    @RequestMapping(value = "save")
+    @RequestMapping(value = "save", method = RequestMethod.POST)
     @ResponseBody
     public AjaxResult save(@RequestBody Command command) {
         try {
@@ -83,11 +86,10 @@ public class CommandController {
         }
     }
 
-    @RequestMapping(value = "del")
+    @DeleteMapping("/{id}")
     @ResponseBody
-    public AjaxResult delete(HttpServletRequest request) {
+    public AjaxResult delete(@PathVariable("id") String id) {
         try {
-            String id = request.getParameter("id");
             if (!StringUtils.isEmpty(id)) {
                 commandService.deleteById(id.split(","));
             }

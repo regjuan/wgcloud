@@ -2,19 +2,15 @@ package com.wgcloud.controller;
 
 import com.github.pagehelper.PageInfo;
 import com.wgcloud.common.AjaxResult;
-import com.wgcloud.common.AjaxResult;
 import com.wgcloud.entity.Tag;
 import com.wgcloud.service.TagService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,7 +23,7 @@ public class TagController {
     @Resource
     private TagService tagService;
 
-    @RequestMapping(value = "list")
+    @PostMapping("/list")
     @ResponseBody
     public AjaxResult list(@RequestBody Tag tag) {
         Map<String, Object> params = new HashMap<>();
@@ -43,15 +39,23 @@ public class TagController {
         }
     }
 
-    @RequestMapping(value = "save")
+    @GetMapping("/{id}")
     @ResponseBody
-    public AjaxResult save(@RequestBody Tag tag) {
+    public AjaxResult info(@PathVariable("id") String id) {
         try {
-            if (StringUtils.isEmpty(tag.getId())) {
-                tagService.save(tag);
-            } else {
-                tagService.updateById(tag);
-            }
+            Tag tag = tagService.selectById(id);
+            return AjaxResult.success(tag);
+        } catch (Exception e) {
+            logger.error("获取标签信息错误", e);
+            return AjaxResult.error("获取标签信息错误");
+        }
+    }
+
+    @PostMapping
+    @ResponseBody
+    public AjaxResult create(@RequestBody Tag tag) {
+        try {
+            tagService.save(tag);
             return AjaxResult.success();
         } catch (Exception e) {
             logger.error("保存标签错误", e);
@@ -59,11 +63,23 @@ public class TagController {
         }
     }
 
-    @RequestMapping(value = "del")
+    @PutMapping("/{id}")
     @ResponseBody
-    public AjaxResult delete(HttpServletRequest request) {
+    public AjaxResult update(@PathVariable("id") String id, @RequestBody Tag tag) {
         try {
-            String id = request.getParameter("id");
+            tag.setId(id);
+            tagService.updateById(tag);
+            return AjaxResult.success();
+        } catch (Exception e) {
+            logger.error("更新标签错误", e);
+            return AjaxResult.error(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseBody
+    public AjaxResult delete(@PathVariable("id") String id) {
+        try {
             if (!StringUtils.isEmpty(id)) {
                 tagService.deleteById(id.split(","));
             }

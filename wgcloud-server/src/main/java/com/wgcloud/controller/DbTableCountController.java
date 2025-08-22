@@ -1,23 +1,20 @@
 package com.wgcloud.controller;
 
-import cn.hutool.json.JSONObject;
 import com.github.pagehelper.PageInfo;
+import com.wgcloud.common.AjaxResult;
 import com.wgcloud.entity.DbTableCount;
 import com.wgcloud.service.DbInfoService;
 import com.wgcloud.service.DbTableCountService;
 import com.wgcloud.service.DbTableService;
 import com.wgcloud.service.LogInfoService;
-import com.wgcloud.util.PageUtil;
 import com.wgcloud.util.staticvar.StaticKeys;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -56,18 +53,16 @@ public class DbTableCountController {
      */
     @RequestMapping(value = "list")
     @ResponseBody
-    public JSONObject dbTableCountList(DbTableCount dbTableCount) {
-        JSONObject resultJson = new JSONObject();
+    public AjaxResult dbTableCountList(DbTableCount dbTableCount) {
         Map<String, Object> params = new HashMap<String, Object>();
         try {
             PageInfo pageInfo = dbTableCountService.selectByParams(params, dbTableCount.getPage(), dbTableCount.getPageSize());
-            resultJson.put("page", pageInfo);
+            return AjaxResult.success(pageInfo);
         } catch (Exception e) {
             logger.error("查询数据源表统计信息错误", e);
             logInfoService.save("查询数据源表统计信息错误", e.toString(), StaticKeys.LOG_ERROR);
-            resultJson.put("error", e.getMessage());
+            return AjaxResult.error("查询数据源表统计信息错误");
         }
-        return resultJson;
     }
 
 
@@ -79,18 +74,15 @@ public class DbTableCountController {
      */
     @RequestMapping(value = "save")
     @ResponseBody
-    public JSONObject saveDbTableCount(@RequestBody DbTableCount DbTableCount) {
-        JSONObject resultJson = new JSONObject();
+    public AjaxResult saveDbTableCount(@RequestBody DbTableCount DbTableCount) {
         try {
             dbTableCountService.save(DbTableCount);
-            resultJson.put("result","success");
+            return AjaxResult.success();
         } catch (Exception e) {
             logger.error("保存数据源表统计错误：", e);
             logInfoService.save("保存数据源表统计错误", e.toString(), StaticKeys.LOG_ERROR);
-            resultJson.put("result","error");
-            resultJson.put("msg",e.getMessage());
+            return AjaxResult.error(e.getMessage());
         }
-        return resultJson;
     }
 
 
@@ -101,22 +93,19 @@ public class DbTableCountController {
      */
     @RequestMapping(value = "del")
     @ResponseBody
-    public JSONObject delete(HttpServletRequest request) {
-        JSONObject resultJson = new JSONObject();
+    public AjaxResult delete(HttpServletRequest request) {
         String errorMsg = "删除数据源表统计信息错误：";
         try {
             String id = request.getParameter("id");
             if (!StringUtils.isEmpty(id)) {
                 dbTableCountService.deleteById(id.split(","));
             }
-            resultJson.put("result","success");
+            return AjaxResult.success();
         } catch (Exception e) {
             logger.error(errorMsg, e);
             logInfoService.save(errorMsg, e.toString(), StaticKeys.LOG_ERROR);
-            resultJson.put("result","error");
-            resultJson.put("msg",e.getMessage());
+            return AjaxResult.error(e.getMessage());
         }
-        return resultJson;
     }
 
 

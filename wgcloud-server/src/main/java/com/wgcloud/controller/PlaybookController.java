@@ -12,12 +12,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +32,7 @@ public class PlaybookController {
     @Resource
     private TagService tagService;
 
-    @RequestMapping(value = "list")
+    @PostMapping("/list")
     @ResponseBody
     public AjaxResult list(@RequestBody Playbook playbook) {
         Map<String, Object> params = new HashMap<>();
@@ -51,10 +48,9 @@ public class PlaybookController {
         }
     }
 
-    @RequestMapping(value = "edit")
+    @GetMapping("/{id}")
     @ResponseBody
-    public AjaxResult edit(HttpServletRequest request) {
-        String id = request.getParameter("id");
+    public AjaxResult info(@PathVariable("id") String id) {
         Playbook playbook = new Playbook();
         try {
             if (!StringUtils.isEmpty(id)) {
@@ -68,20 +64,16 @@ public class PlaybookController {
             data.put("allTags", allTags);
             return AjaxResult.success(data);
         } catch (Exception e) {
-            logger.error("编辑预案错误", e);
-            return AjaxResult.error("编辑预案错误");
+            logger.error("获取预案信息错误", e);
+            return AjaxResult.error("获取预案信息错误");
         }
     }
 
-    @RequestMapping(value = "save")
+    @PostMapping
     @ResponseBody
-    public AjaxResult save(@RequestBody Playbook playbook) {
+    public AjaxResult create(@RequestBody Playbook playbook) {
         try {
-            if (StringUtils.isEmpty(playbook.getId())) {
-                playbookService.save(playbook);
-            } else {
-                playbookService.updateById(playbook);
-            }
+            playbookService.save(playbook);
             return AjaxResult.success();
         } catch (Exception e) {
             logger.error("保存预案错误", e);
@@ -89,11 +81,23 @@ public class PlaybookController {
         }
     }
 
-    @RequestMapping(value = "del")
+    @PutMapping("/{id}")
     @ResponseBody
-    public AjaxResult delete(HttpServletRequest request) {
+    public AjaxResult update(@PathVariable("id") String id, @RequestBody Playbook playbook) {
         try {
-            String id = request.getParameter("id");
+            playbook.setId(id);
+            playbookService.updateById(playbook);
+            return AjaxResult.success();
+        } catch (Exception e) {
+            logger.error("更新预案错误", e);
+            return AjaxResult.error(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseBody
+    public AjaxResult delete(@PathVariable("id") String id) {
+        try {
             if (!StringUtils.isEmpty(id)) {
                 playbookService.deleteById(id.split(","));
             }

@@ -24,7 +24,7 @@ import java.util.Map;
  * @Copyright: 2017-2024 wgcloud. All rights reserved.
  */
 @RestController
-@RequestMapping(value = "/api/login")
+@RequestMapping(value = "/login")
 public class LoginCotroller {
 
     private static final Logger logger = LoggerFactory.getLogger(LoginCotroller.class);

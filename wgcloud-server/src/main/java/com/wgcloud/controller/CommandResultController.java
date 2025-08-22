@@ -8,12 +8,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,7 +23,7 @@ public class CommandResultController {
     @Resource
     private CommandResultService commandResultService;
 
-    @RequestMapping(value = "list")
+    @RequestMapping(value = "list", method = RequestMethod.POST)
     @ResponseBody
     public AjaxResult list(@RequestBody CommandResult commandResult) {
         Map<String, Object> params = new HashMap<>();
@@ -45,11 +42,10 @@ public class CommandResultController {
         }
     }
 
-    @RequestMapping(value = "del")
+    @DeleteMapping("/{id}")
     @ResponseBody
-    public AjaxResult delete(HttpServletRequest request) {
+    public AjaxResult delete(@PathVariable("id") String id) {
         try {
-            String id = request.getParameter("id");
             if (!StringUtils.isEmpty(id)) {
                 commandResultService.deleteById(id.split(","));
             }
