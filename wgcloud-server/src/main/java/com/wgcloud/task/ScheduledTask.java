@@ -85,7 +85,35 @@ public class ScheduledTask {
     ConnectionUtil connectionUtil;
     @Autowired
     CommonConfig commonConfig;
+    @Autowired
+    SystemInfoMapper systemInfoMapper;
+    @Autowired
+    CpuStateMapper cpuStateMapper;
+    @Autowired
+    DeskStateMapper deskStateMapper;
+    @Autowired
+    MemStateMapper memStateMapper;
+    @Autowired
+    NetIoStateMapper netIoStateMapper;
+    @Autowired
+    SysLoadStateMapper sysLoadStateMapper;
+    @Autowired
+    TcpStateMapper tcpStateMapper;
+    @Autowired
+    AppInfoMapper appInfoMapper;
+    @Autowired
+    AppStateMapper appStateMapper;
+    @Autowired
+    MailSetMapper mailSetMapper;
+    @Autowired
+    IntrusionInfoMapper intrusionInfoMapper;
+    @Autowired
+    LogInfoMapper logInfoMapper;
 
+    @Autowired
+    private PlaybookService playbookService;
+    @Autowired
+    private CommandRunService commandRunService;
     /**
      * 20秒后执行
      * 初始化操作
@@ -431,31 +459,6 @@ public class ScheduledTask {
         logger.info("批量提交监控数据任务结束----------" + DateUtil.getCurrentDateTime());
     }
 
-    @Autowired
-    SystemInfoMapper systemInfoMapper;
-    @Autowired
-    CpuStateMapper cpuStateMapper;
-    @Autowired
-    DeskStateMapper deskStateMapper;
-    @Autowired
-    MemStateMapper memStateMapper;
-    @Autowired
-    NetIoStateMapper netIoStateMapper;
-    @Autowired
-    SysLoadStateMapper sysLoadStateMapper;
-    @Autowired
-    TcpStateMapper tcpStateMapper;
-    @Autowired
-    AppInfoMapper appInfoMapper;
-    @Autowired
-    AppStateMapper appStateMapper;
-    @Autowired
-    MailSetMapper mailSetMapper;
-    @Autowired
-    IntrusionInfoMapper intrusionInfoMapper;
-    @Autowired
-    LogInfoMapper logInfoMapper;
-
     /**
      * 每天凌晨1:10执行
      * 删除历史数据，15天
@@ -495,10 +498,6 @@ public class ScheduledTask {
         logger.info("定时清空历史数据任务结束----------" + DateUtil.getCurrentDateTime());
     }
 
-    @Autowired
-    private PlaybookService playbookService;
-    @Autowired
-    private CommandRunService commandRunService;
 
     /**
      * 核心触发
@@ -507,7 +506,7 @@ public class ScheduledTask {
      * 如果符合下发给CommandRunService
      *
      */
-    @Scheduled(fixedRate = 60 * 1000)
+    @Scheduled(initialDelay = 30000L, fixedRate = 60 * 1000)
     public void commandTaskScheduler() {
         try {
             Map<String, Object> params = new HashMap<>();

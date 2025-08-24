@@ -56,12 +56,8 @@ public class PlaybookController {
             if (!StringUtils.isEmpty(id)) {
                 playbook = playbookService.selectById(id);
             }
-            List<Command> allCommands = commandService.selectByParams(new HashMap<>(), 1, 9999).getList();
-            List<Tag> allTags = tagService.selectAllByParams(new HashMap<>());
             Map<String, Object> data = new HashMap<>();
             data.put("playbook", playbook);
-            data.put("allCommands", allCommands);
-            data.put("allTags", allTags);
             return AjaxResult.success(data);
         } catch (Exception e) {
             logger.error("获取预案信息错误", e);

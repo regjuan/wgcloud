@@ -12,4 +12,5 @@ public interface TagRelationMapper {
     int deleteByTagId(String tagId);
     int deleteByRelationId(String relationId);
     int deleteByRelationIdAndTagId(Map<String, Object> params);
+    int deleteByRelationIdAndRelationType(Map<String, Object> params);
 }

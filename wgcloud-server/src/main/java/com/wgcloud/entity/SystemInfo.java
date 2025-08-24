@@ -73,6 +73,16 @@ public class SystemInfo extends BaseEntity {
      */
     private String remark;
 
+    /**
+     * 标签
+     */
+    private String tags;
+
+    /**
+     * 标签名称列表
+     */
+    private String tagNameList;
+
 
     public String getVersion() {
         return version;
@@ -163,5 +173,21 @@ public class SystemInfo extends BaseEntity {
 
     public void setDiskPer(Double diskPer) {
         this.diskPer = diskPer;
+    }
+
+    public String getTags() {
+        return tags;
+    }
+
+    public void setTags(String tags) {
+        this.tags = tags;
+    }
+
+    public String getTagNameList() {
+        return tagNameList;
+    }
+
+    public void setTagNameList(String tagNameList) {
+        this.tagNameList = tagNameList;
     }
 }

@@ -15,15 +15,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @version v2.3
@@ -68,6 +67,10 @@ public class DashboardCotroller {
     HeathMonitorService heathMonitorService;
     @Autowired
     HostInfoService hostInfoService;
+    @Autowired
+    private TagRelationService tagRelationService;
+    @Autowired
+    private TagService tagService;
 
     /**
      * 根据条件查询host列表
@@ -203,7 +206,28 @@ public class DashboardCotroller {
     public AjaxResult systemInfoList(SystemInfo systemInfo, HttpServletRequest request) {
         Map<String, Object> params = new HashMap<String, Object>();
         try {
+            if (!StringUtils.isEmpty(systemInfo.getTags())) {
+                params.put("tags", systemInfo.getTags().split(","));
+            }
             PageInfo<SystemInfo> pageInfo = systemInfoService.selectByParams(params, systemInfo.getPage(), systemInfo.getPageSize());
+
+            // 获取并设置每个主机的标签
+            for (SystemInfo s : pageInfo.getList()) {
+                Map<String, Object> tagParams = new HashMap<>();
+                tagParams.put("relationId", s.getId());
+                tagParams.put("relationType", "HOST");
+                List<TagRelation> tagRelations = tagRelationService.selectByParams(tagParams);
+                if (!tagRelations.isEmpty()) {
+                    List<String> tagNames = new ArrayList<>();
+                    for (TagRelation tr : tagRelations) {
+                        Tag tag = tagService.selectById(tr.getTagId());
+                        if (tag != null) {
+                            tagNames.add(tag.getTagName());
+                        }
+                    }
+                    s.setTagNameList(StringUtils.join(tagNames, ","));
+                }
+            }
 
             //设置磁盘总使用率 begin
             for (SystemInfo systemInfo1 : pageInfo.getList()) {
@@ -352,6 +376,32 @@ public class DashboardCotroller {
             logger.error("服务器图形报表错误：", e);
             logInfoService.save(hostname, "图形报表错误", e.toString());
             return AjaxResult.error("获取服务器图形报表错误");
+        }
+    }
+
+    @ResponseBody
+    @PostMapping("/updateTags")
+    public AjaxResult updateTags(@RequestBody SystemInfo systemInfo) {
+        try {
+            Map<String, Object> params = new HashMap<>();
+            params.put("relationId", systemInfo.getId());
+            params.put("relationType", "HOST");
+            tagRelationService.deleteByRelationIdAndRelationType(params);
+            if (!StringUtils.isEmpty(systemInfo.getTags())) {
+                String[] tagIdArr = systemInfo.getTags().split(",");
+                for (String tagId : tagIdArr) {
+                    TagRelation tagRelation = new TagRelation();
+                    tagRelation.setRelationId(systemInfo.getId());
+                    tagRelation.setTagId(tagId);
+                    tagRelation.setRelationType("HOST");
+                    tagRelation.setId(UUID.randomUUID().toString().replace("-", ""));
+                    tagRelationService.save(tagRelation);
+                }
+            }
+            return AjaxResult.success();
+        } catch (Exception e) {
+            logger.error("更新主机标签错误", e);
+            return AjaxResult.error("更新主机标签错误");
         }
     }
 

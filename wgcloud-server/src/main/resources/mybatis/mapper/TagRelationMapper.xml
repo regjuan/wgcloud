@@ -57,4 +57,8 @@
         DELETE FROM TAG_RELATION WHERE RELATION_ID = #{relationId} AND TAG_ID = #{tagId}
     </delete>
 
+    <delete id="deleteByRelationIdAndRelationType" parameterType="map">
+        DELETE FROM TAG_RELATION WHERE RELATION_ID = #{relationId} AND RELATION_TYPE = #{relationType}
+    </delete>
+
 </mapper>

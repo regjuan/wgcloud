@@ -47,18 +47,30 @@ public class CommandRunService {
 
                 Set<String> targetHostIds = new HashSet<>();
 
-                if ("TAG".equals(step.getTargetType())) {
-                    Map<String, Object> params = new HashMap<>();
-                    params.put("tagIds", step.getTargets());
-                    List<TagRelation> relations = tagRelationService.selectByParams(params);
-                    for (TagRelation relation : relations) {
-                        if("HOST".equals(relation.getRelationType())){
-                           targetHostIds.add(relation.getRelationId());
-                        }
-                    }
-                } else {
-                    targetHostIds.addAll(step.getTargets());
+
+                List<String> requiredTagIds = step.getTargets();
+                if (requiredTagIds.isEmpty()) {
+                    continue;
                 }
+                Map<String, Object> params = new HashMap<>();
+                params.put("tagIds", requiredTagIds);
+                List<TagRelation> relations = tagRelationService.selectByParams(params);
+
+                // host - tag 对应
+                Map<String, Set<String>> hostIdToTags = new HashMap<>();
+                for (TagRelation relation : relations) {
+                    if ("HOST".equals(relation.getRelationType())) {
+                        hostIdToTags.computeIfAbsent(relation.getRelationId(), k -> new HashSet<>()).add(relation.getTagId());
+                    }
+                }
+
+                // 确认完全匹配
+                for (Map.Entry<String, Set<String>> entry : hostIdToTags.entrySet()) {
+                    if (entry.getValue().containsAll(requiredTagIds)) {
+                        targetHostIds.add(entry.getKey());
+                    }
+                }
+
 
                 for (String hostId : targetHostIds) {
                     SystemInfo systemInfo = systemInfoService.selectById(hostId);

@@ -198,13 +198,41 @@
 	</select>
 	
 	<select id="selectByParams" parameterType="map" resultMap="resultMap">
-		SELECT
-		<include refid="tableColumnList" />
-		FROM SYSTEM_INFO
-		<where>
-			<include refid="queryByParams" />
-		</where>
-		ORDER BY HOST_NAME ASC
-	</select>
+        SELECT
+        si.ID,
+        si.HOST_NAME,
+        si.VERSION,
+        si.VERSION_DETAIL,
+        si.CPU_PER,
+        si.MEM_PER,
+        si.CPU_CORE_NUM,
+        si.CREATE_TIME,
+        si.CPU_XH,
+        si.STATE,
+        si.REMARK
+        FROM SYSTEM_INFO si
+        <if test="tags != null and tags.length > 0">
+            JOIN TAG_RELATION tr ON si.ID = tr.RELATION_ID AND tr.RELATION_TYPE = 'HOST'
+        </if>
+        <where>
+            <if test="hostname != null and hostname != ''">
+                AND si.HOST_NAME like CONCAT('%',#{hostname},'%')
+            </if>
+            <if test="state != null and state != ''">
+                AND si.STATE = #{state}
+            </if>
+            <if test="tags != null and tags.length > 0">
+                AND tr.TAG_ID IN
+                <foreach collection="tags" item="tagId" open="(" separator="," close=")">
+                    #{tagId}
+                </foreach>
+            </if>
+        </where>
+        <if test="tags != null and tags.length > 0">
+            GROUP BY si.ID
+            HAVING COUNT(DISTINCT tr.TAG_ID) = #{tags.length}
+        </if>
+        order by si.CREATE_TIME asc
+    </select>
 	
 </mapper>
