@@ -531,4 +531,20 @@ public class ScheduledTask {
         }
     }
 
+
+    /**
+     * 每分钟执行一次，清理过期的任务
+     */
+    @Scheduled(initialDelay = 60 * 1000L, fixedRate = 60 * 1000)
+    public void cleanExpiredCommandResultsTask() {
+        try {
+            int updated = commandResultService.updateExpiredTasks();
+            if (updated > 0) {
+                logger.info("成功清理 {} 个过期的任务", updated);
+            }
+        } catch (Exception e) {
+            logger.error("清理过期任务时发生错误", e);
+        }
+    }
+
 }

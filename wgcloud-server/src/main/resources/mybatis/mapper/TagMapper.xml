@@ -50,8 +50,83 @@
     </select>
 
     <insert id="save" parameterType="com.wgcloud.entity.Tag">
-        INSERT INTO TAG (ID, TAG_NAME, TAG_DESC, TAG_COLOR, CREATE_TIME)
-        VALUES (#{id}, #{tagName}, #{tagDesc}, #{tagColor}, #{createTime})
+        <?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wgcloud.mapper.TagMapper">
+
+    <resultMap id="resultMap" type="com.wgcloud.entity.Tag">
+        <id column="ID" property="id" jdbcType="CHAR" />
+        <result column="TAG_NAME" property="tagName" jdbcType="VARCHAR" />
+        <result column="TAG_DESC" property="tagDesc" jdbcType="VARCHAR" />
+        <result column="TAG_COLOR" property="tagColor" jdbcType="VARCHAR" />
+        <result column="LOG_PATH" property="logPath" jdbcType="VARCHAR" />
+        <result column="CREATE_TIME" property="createTime" jdbcType="TIMESTAMP" />
+    </resultMap>
+
+    <sql id="tableColumnList">
+        ID, TAG_NAME, TAG_DESC, TAG_COLOR, LOG_PATH, CREATE_TIME
+    </sql>
+
+    <sql id="queryByParams">
+        <if test="tagName != null">
+            <![CDATA[ AND TAG_NAME LIKE CONCAT('%',#{tagName},'%') ]]>
+        </if>
+        <if test="ids != null">
+            AND ID IN
+            <foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+    </sql>
+
+    <select id="selectByParams" parameterType="map" resultMap="resultMap">
+        SELECT
+        <include refid="tableColumnList" />
+        FROM TAG
+        <where>
+            <include refid="queryByParams" />
+        </where>
+        ORDER BY CREATE_TIME DESC
+    </select>
+
+    <select id="countByParams" parameterType="map" resultType="java.lang.Integer">
+        SELECT count(*) FROM TAG
+        <where>
+            <include refid="queryByParams" />
+        </where>
+    </select>
+
+    <select id="selectById" parameterType="java.lang.String" resultMap="resultMap">
+        SELECT
+        <include refid="tableColumnList" />
+        FROM TAG WHERE ID = #{id}
+    </select>
+
+    <insert id="save" parameterType="com.wgcloud.entity.Tag">
+        INSERT INTO TAG (ID, TAG_NAME, TAG_DESC, TAG_COLOR, LOG_PATH, CREATE_TIME)
+        VALUES (#{id}, #{tagName}, #{tagDesc}, #{tagColor}, #{logPath}, #{createTime})
+    </inst>
+
+    <update id="updateById" parameterType="com.wgcloud.entity.Tag">
+        UPDATE TAG
+        <set>
+            <if test="tagName != null">TAG_NAME = #{tagName},</if>
+            <if test="tagDesc != null">TAG_DESC = #{tagDesc},</if>
+            <if test="tagColor != null">TAG_COLOR = #{tagColor},</if>
+            <if test="logPath != null">LOG_PATH = #{logPath},</if>
+        </set>
+        WHERE ID = #{id}
+    </update>
+
+    <delete id="deleteById" parameterType="java.lang.String">
+        DELETE FROM TAG WHERE ID IN
+        <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+</mapper>
+
     </insert>
 
     <update id="updateById" parameterType="com.wgcloud.entity.Tag">

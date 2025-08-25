@@ -84,6 +84,9 @@ public class CommandRunService {
                     commandResult.setHostname(systemInfo.getHostname());
                     commandResult.setStatus("PENDING");
                     commandResult.setStartTime(new Date());
+                    if (playbook.getTimeoutSeconds() != null && playbook.getTimeoutSeconds() > 0) {
+                        commandResult.setExpireTime(new Date(System.currentTimeMillis() + playbook.getTimeoutSeconds() * 1000L));
+                    }
                     commandResultService.save(commandResult);
                     logger.info("已为任务[{}]的步骤[{}]在主机[{}]上生成待执行指令", playbook.getPlaybookName(), step.getStepName(), systemInfo.getHostname());
                 }

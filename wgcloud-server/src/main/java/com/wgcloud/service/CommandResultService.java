@@ -56,4 +56,8 @@ public class CommandResultService {
     public int deleteById(String[] ids) throws Exception {
         return commandResultMapper.deleteById(ids);
     }
+
+    public int updateExpiredTasks() throws Exception {
+        return commandResultMapper.updateExpiredTasks();
+    }
 }

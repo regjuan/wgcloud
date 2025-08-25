@@ -70,4 +70,12 @@
         WHERE ID = #{id}
     </update>
 
+    <update id="updateExpiredTasks">
+        UPDATE COMMAND_RESULT
+        SET STATUS = 'TIMEOUT'
+        WHERE STATUS = 'PENDING'
+          AND EXPIRE_TIME IS NOT NULL
+          AND EXPIRE_TIME &lt; NOW()
+    </update>
+
 </mapper>

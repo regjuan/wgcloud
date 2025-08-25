@@ -15,6 +15,7 @@ public class Playbook {
     // 存储规则JSON字符串
     private String taskSteps;
     private Date createTime;
+    private Integer timeoutSeconds;
 
     /* 分页参 */
     private Integer page;

@@ -12,4 +12,5 @@ public interface CommandResultMapper {
     int deleteById(String[] id);
     int countByParams(Map<String, Object> params);
     int updateById(CommandResult commandResult);
+    int updateExpiredTasks();
 }

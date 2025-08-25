@@ -15,6 +15,7 @@ public class CommandResult {
     private Integer exitCode;
     private Date startTime;
     private Date endTime;
+    private Date expireTime;
 
     /* 分页参*/
     private Integer page;
