@@ -79,14 +79,17 @@ public class CommandRunService {
                     }
 
                     CommandResult commandResult = new CommandResult();
+                    int waitTime = 180;
                     commandResult.setTaskId(playbook.getId());
                     commandResult.setCommandId(step.getCommandId()); // 使用当前步骤的commandId
                     commandResult.setHostname(systemInfo.getHostname());
                     commandResult.setStatus("PENDING");
                     commandResult.setStartTime(new Date());
                     if (playbook.getTimeoutSeconds() != null && playbook.getTimeoutSeconds() > 0) {
-                        commandResult.setExpireTime(new Date(System.currentTimeMillis() + playbook.getTimeoutSeconds() * 1000L));
+                        waitTime = playbook.getTimeoutSeconds() ;
+
                     }
+                    commandResult.setExpireTime(new Date(System.currentTimeMillis() + waitTime * 1000L));
                     commandResultService.save(commandResult);
                     logger.info("已为任务[{}]的步骤[{}]在主机[{}]上生成待执行指令", playbook.getPlaybookName(), step.getStepName(), systemInfo.getHostname());
                 }

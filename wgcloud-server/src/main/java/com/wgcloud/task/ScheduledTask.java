@@ -114,6 +114,8 @@ public class ScheduledTask {
     private PlaybookService playbookService;
     @Autowired
     private CommandRunService commandRunService;
+    @Autowired
+    private CommandResultService commandResultService;
     /**
      * 20秒后执行
      * 初始化操作
@@ -509,6 +511,7 @@ public class ScheduledTask {
     @Scheduled(initialDelay = 30000L, fixedRate = 60 * 1000)
     public void commandTaskScheduler() {
         try {
+            logger.info("开始检索需要执行的预案");
             Map<String, Object> params = new HashMap<>();
             params.put("isEnabled", 1); // 1 表示启用
             List<Playbook> playbookList = playbookService.selectByParams(params, 1, 999999).getList();
@@ -518,8 +521,8 @@ public class ScheduledTask {
 
             for (Playbook playbook : playbookList) {
                 try {
-                    if (!StringUtils.isEmpty(playbook.getCronExpression()) && new CronPattern(playbook.getCronExpression()).match(System.currentTimeMillis(), true)) {
-                        logger.info("开始执行定时任务：{}", playbook.getPlaybookName());
+                     if (!StringUtils.isEmpty(playbook.getCronExpression()) && new CronPattern(playbook.getCronExpression()).match(System.currentTimeMillis(), false)) {
+                        logger.info("下发定时任务：{}", playbook.getPlaybookName());
                         commandRunService.runTask(playbook);
                     }
                 } catch (Exception e) {

@@ -2,19 +2,20 @@ package com.wgcloud.controller;
 
 import com.github.pagehelper.PageInfo;
 import com.wgcloud.common.AjaxResult;
-import com.wgcloud.entity.Command;
+import com.wgcloud.dto.PlaybookHisDto;
+import com.wgcloud.entity.CommandResult;
 import com.wgcloud.entity.Playbook;
-import com.wgcloud.entity.Tag;
-import com.wgcloud.service.CommandService;
+import com.wgcloud.service.CommandResultService;
 import com.wgcloud.service.PlaybookService;
-import com.wgcloud.service.TagService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,9 +29,7 @@ public class PlaybookController {
     @Resource
     private PlaybookService playbookService;
     @Resource
-    private CommandService commandService;
-    @Resource
-    private TagService tagService;
+    private CommandResultService commandResultService;
 
     @PostMapping("/list")
     @ResponseBody
@@ -101,6 +100,35 @@ public class PlaybookController {
         } catch (Exception e) {
             logger.error("删除预案错误", e);
             return AjaxResult.error(e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}/history")
+    @ResponseBody
+    public AjaxResult getHistoryList(@PathVariable("id") String id) {
+        try {
+            Map<String, Object> params = new HashMap<>();
+            params.put("taskId", id);
+            List<PlaybookHisDto> list = commandResultService.selectHisByParams(params);
+            return AjaxResult.success(list);
+        } catch (Exception e) {
+            logger.error("获取预案执行历史列表错误", e);
+            return AjaxResult.error("获取预案执行历史列表错误");
+        }
+    }
+
+    @GetMapping("/history/details")
+    @ResponseBody
+    public AjaxResult getHistoryDetails(@RequestParam("taskId") String taskId, @RequestParam("startTime")  String startTime) {
+        try {
+            Map<String, Object> params = new HashMap<>();
+            params.put("taskId", taskId);
+            params.put("startTime", startTime);
+            PageInfo<CommandResult> pageInfo = commandResultService.selectByParams(params, 1, 9999);
+            return AjaxResult.success(pageInfo.getList());
+        } catch (Exception e) {
+            logger.error("获取预案单次执行详情错误", e);
+            return AjaxResult.error("获取预案单次执行详情错误");
         }
     }
 }

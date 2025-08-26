@@ -2,6 +2,7 @@
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import com.wgcloud.dto.PlaybookHisDto;
 import com.wgcloud.entity.Command;
 import com.wgcloud.entity.CommandResult;
 import com.wgcloud.entity.Playbook;
@@ -42,6 +43,10 @@ public class CommandResultService {
             }
         }
         return new PageInfo<>(list);
+    }
+
+    public List<PlaybookHisDto> selectHisByParams(Map<String, Object> params) throws Exception {
+        return commandResultMapper.selectHisByParams(params);
     }
 
     public void save(CommandResult commandResult) throws Exception {

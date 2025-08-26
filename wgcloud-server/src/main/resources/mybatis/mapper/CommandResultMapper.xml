@@ -13,10 +13,11 @@
         <result column="EXIT_CODE" property="exitCode" jdbcType="INTEGER" />
         <result column="START_TIME" property="startTime" jdbcType="TIMESTAMP" />
         <result column="END_TIME" property="endTime" jdbcType="TIMESTAMP" />
+        <result column="EXPIRE_TIME" property="expireTime" jdbcType="TIMESTAMP" />
     </resultMap>
 
     <sql id="tableColumnList">
-        ID, TASK_ID, COMMAND_ID, HOSTNAME, STATUS, STDOUT, STDERR, EXIT_CODE, START_TIME, END_TIME
+        ID, TASK_ID, COMMAND_ID, HOSTNAME, STATUS, STDOUT, STDERR, EXIT_CODE, START_TIME, END_TIME,EXPIRE_TIME
     </sql>
 
     <sql id="queryByParams">
@@ -25,6 +26,12 @@
         </if>
         <if test="status != null">
             AND STATUS = #{status}
+        </if>
+        <if test="taskId != null">
+            AND TASK_ID = #{taskId}
+        </if>
+        <if test="startTime != null">
+            AND START_TIME = #{startTime}
         </if>
     </sql>
 
@@ -46,8 +53,8 @@
     </select>
 
     <insert id="save" parameterType="com.wgcloud.entity.CommandResult">
-        INSERT INTO COMMAND_RESULT (ID, TASK_ID, COMMAND_ID, HOSTNAME, STATUS, STDOUT, STDERR, EXIT_CODE, START_TIME, END_TIME)
-        VALUES (#{id}, #{taskId}, #{commandId}, #{hostname}, #{status}, #{stdout}, #{stderr}, #{exitCode}, #{startTime}, #{endTime})
+        INSERT INTO COMMAND_RESULT (ID, TASK_ID, COMMAND_ID, HOSTNAME, STATUS, STDOUT, STDERR, EXIT_CODE, START_TIME, END_TIME,EXPIRE_TIME)
+        VALUES (#{id}, #{taskId}, #{commandId}, #{hostname}, #{status}, #{stdout}, #{stderr}, #{exitCode}, #{startTime}, #{endTime},#{expireTime})
     </insert>
 
     <delete id="deleteById" parameterType="java.lang.String">
@@ -66,6 +73,7 @@
             <if test="exitCode != null">EXIT_CODE = #{exitCode},</if>
             <if test="startTime != null">START_TIME = #{startTime},</if>
             <if test="endTime != null">END_TIME = #{endTime},</if>
+            <if test="expireTime != null">EXPIRE_TIME = #{expireTime},</if>
         </set>
         WHERE ID = #{id}
     </update>
@@ -77,5 +85,43 @@
           AND EXPIRE_TIME IS NOT NULL
           AND EXPIRE_TIME &lt; NOW()
     </update>
+
+    <resultMap id="playbookHisDtoResultMap" type="com.wgcloud.dto.PlaybookHisDto">
+        <result column="playbookId" property="playbookId" jdbcType="VARCHAR" />
+        <result column="playbookName" property="playbookName" jdbcType="VARCHAR" />
+        <result column="startTime" property="startTime" jdbcType="TIMESTAMP" />
+        <result column="totalSteps" property="totalSteps" jdbcType="INTEGER" />
+        <result column="successSteps" property="successSteps" jdbcType="INTEGER" />
+        <result column="failedSteps" property="failedSteps" jdbcType="INTEGER" />
+        <result column="pendingSteps" property="pendingSteps" jdbcType="INTEGER" />
+        <result column="runningSteps" property="runningSteps" jdbcType="INTEGER" />
+        <result column="timeoutSteps" property="timeoutSteps" jdbcType="INTEGER" />
+    </resultMap>
+
+    <select id="selectHisByParams" parameterType="map" resultMap="playbookHisDtoResultMap">
+        SELECT
+            cr.TASK_ID as playbookId,
+            p.PLAYBOOK_NAME as playbookName,
+            cr.START_TIME as startTime,
+            COUNT(*) as totalSteps,
+            SUM(CASE WHEN cr.STATUS = 'SUCCESS' THEN 1 ELSE 0 END) as successSteps,
+            SUM(CASE WHEN cr.STATUS = 'FAILED' THEN 1 ELSE 0 END) as failedSteps,
+            SUM(CASE WHEN cr.STATUS = 'PENDING' THEN 1 ELSE 0 END) as pendingSteps,
+            SUM(CASE WHEN cr.STATUS = 'RUNNING' THEN 1 ELSE 0 END) as runningSteps,
+            SUM(CASE WHEN cr.STATUS = 'TIMEOUT' THEN 1 ELSE 0 END) as timeoutSteps
+        FROM
+            COMMAND_RESULT cr
+        LEFT JOIN
+            PLAYBOOK p ON cr.TASK_ID = p.ID
+        <where>
+            <if test="taskId != null and taskId != ''">
+                AND cr.TASK_ID = #{taskId}
+            </if>
+        </where>
+        GROUP BY
+            cr.TASK_ID, cr.START_TIME, p.PLAYBOOK_NAME
+        ORDER BY
+            cr.START_TIME DESC
+    </select>
 
 </mapper>

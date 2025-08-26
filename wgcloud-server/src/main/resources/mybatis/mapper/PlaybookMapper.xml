@@ -9,10 +9,11 @@
         <result column="IS_ENABLED" property="isEnabled" jdbcType="TINYINT" />
         <result column="TASK_STEPS" property="taskSteps" jdbcType="LONGVARCHAR" />
         <result column="CREATE_TIME" property="createTime" jdbcType="TIMESTAMP" />
+        <result column="TIMEOUT_SECONDS" property="timeoutSeconds" jdbcType="TIMESTAMP" />
     </resultMap>
 
     <sql id="Base_Column_List" >
-        ID, PLAYBOOK_NAME, PLAYBOOK_DESC, CRON_EXPRESSION, IS_ENABLED, TASK_STEPS, CREATE_TIME
+        ID, PLAYBOOK_NAME, PLAYBOOK_DESC, CRON_EXPRESSION, IS_ENABLED, TASK_STEPS, CREATE_TIME,TIMEOUT_SECONDS
     </sql>
 
     <select id="selectByParams" resultMap="BaseResultMap" parameterType="java.util.Map" >
