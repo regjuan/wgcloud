@@ -49,7 +49,7 @@ public class ScheduledTask {
     /**
      * 线程池
      */
-    static ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 10, 2, TimeUnit.MINUTES, new LinkedBlockingDeque<>());
+    static ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 10, 10, TimeUnit.MINUTES, new LinkedBlockingDeque<>());
 
     /**
      * 60秒后执行，每隔120秒执行, 单位：ms。
@@ -199,73 +199,99 @@ public class ScheduledTask {
     public void commandTaskExecutor() {
         JSONObject resultJson = null;
         try {
-            //1. 获取任务
+            //1. 获取任务列表
             JSONObject paramsJson = new JSONObject();
             paramsJson.put("hostname", commonConfig.getBindIp());
             String resultStr = restUtil.post(commonConfig.getServerUrl() + "/wgcloud/agent/getCommand", paramsJson);
             if (StringUtils.isEmpty(resultStr)) {
                 return;
             }
-            resultJson = JSONUtil.parseObj(resultStr);
-            logger.info("Get command task：{}", resultJson.toString());
 
-            CommandResult commandResult = resultJson.get("commandResult", CommandResult.class);
-            Command command = resultJson.get("command", Command.class);
-
-            //2. 执行任务
-            Process process = null;
-            StringBuilder stdout = new StringBuilder();
-            StringBuilder stderr = new StringBuilder();
-            int exitCode = -1;
-
-            try {
-                process = Runtime.getRuntime().exec(command.getCmdContent());
-
-                // 读取标准输出
-                BufferedReader stdoutReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                String line;
-                while ((line = stdoutReader.readLine()) != null) {
-                    stdout.append(line).append("\n");
-                }
-
-                // 读取错误输出
-                BufferedReader stderrReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                while ((line = stderrReader.readLine()) != null) {
-                    stderr.append(line).append("\n");
-                }
-
-                // 等待进程执行完毕，并设置超时
-                boolean finished = process.waitFor(command.getTimeout(), TimeUnit.SECONDS);
-                if (!finished) {
-                    process.destroy();
-                    commandResult.setStatus("TIMEOUT");
-                } else {
-                    exitCode = process.exitValue();
-                    commandResult.setStatus(exitCode == 0 ? "SUCCESS" : "FAILED");
-                }
-
-            } catch (Exception e) {
-                logger.error("Execute command error", e);
-                commandResult.setStatus("FAILED");
-                stderr.append(e.getMessage());
-            } finally {
-                if (process != null) {
-                    process.destroy();
-                }
+            JSONArray commandList = JSONUtil.parseArray(resultStr);
+            if (commandList == null || commandList.isEmpty()) {
+                return;
             }
+            logger.info("Fetched {} command tasks from server.", commandList.size());
 
-            commandResult.setStdout(stdout.toString());
-            commandResult.setStderr(stderr.toString());
-            commandResult.setExitCode(exitCode);
-            commandResult.setEndTime(new Date());
-
-            //3. 上报结果
-            JSONObject reportJson = new JSONObject();
-            reportJson.put("commandResult", commandResult);
-            restUtil.post(commonConfig.getServerUrl() + "/wgcloud/agent/updateResult", reportJson);
-
+            for (Object commandJsonObj : commandList) {
+                final JSONObject commandJson = (JSONObject) commandJsonObj;
+                executor.execute(() -> {
+                    CommandResult commandResult = null;
+                    Command command = null;
+                    try {
+                        // 2. 执行前判断超时
+                        String commandResultStr = commandJson.getStr("commandResult");
+                        String commandStr = commandJson.getStr("command");
+                        commandResult = cn.hutool.json.JSONUtil.toBean(commandResultStr, CommandResult.class);
+                        command = cn.hutool.json.JSONUtil.toBean(commandStr, Command.class);
+                        if (commandResult.getExpireTime() == null) {
+                            logger.error("Command task [{}] has a NULL expireTime after parsing. Raw JSON: {}", commandResult.getId(), commandResultStr);
+                            commandResult.setStatus("FAILED");
+                            commandResult.setStderr("Agent failed to read task expireTime.");
+                        } else {
+                            if (System.currentTimeMillis() > commandResult.getExpireTime().getTime()) {
+                                logger.warn("Command task [{}] timed out in agent queue before execution.", commandResult.getId());
+                                commandResult.setStatus("TIMEOUT");
+                                commandResult.setStderr("Task timed out in agent queue before execution.");
+                            } else {
+                                // 3. 执行任务
+                                Process process = null;
+                                StringBuilder stdout = new StringBuilder();
+                                StringBuilder stderr = new StringBuilder();
+                                int exitCode = -1;
+                                try {
+                                    process = Runtime.getRuntime().exec(command.getCmdContent());
+                                    BufferedReader stdoutReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                                    String line;
+                                    while ((line = stdoutReader.readLine()) != null) {
+                                        stdout.append(line).append("\n");
+                                    }
+                                    BufferedReader stderrReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                                    while ((line = stderrReader.readLine()) != null) {
+                                        stderr.append(line).append("\n");
+                                    }
+                                    boolean finished = process.waitFor(command.getTimeout(), TimeUnit.SECONDS);
+                                    if (!finished) {
+                                        process.destroy();
+                                        commandResult.setStatus("TIMEOUT");
+                                        stderr.append("\nTask execution timed out in agent.");
+                                    } else {
+                                        exitCode = process.exitValue();
+                                        commandResult.setStatus(exitCode == 0 ? "SUCCESS" : "FAILED");
+                                    }
+                                } catch (Exception e) {
+                                    logger.error("Execute command error", e);
+                                    commandResult.setStatus("FAILED");
+                                    stderr.append(e.getMessage());
+                                } finally {
+                                    if (process != null) {
+                                        process.destroy();
+                                    }
+                                }
+                                commandResult.setStdout(stdout.toString());
+                                commandResult.setStderr(stderr.toString());
+                                commandResult.setExitCode(exitCode);
+                            }
+                        }
+                        commandResult.setEndTime(new Date());
+                        JSONObject reportJson = new JSONObject();
+                        reportJson.put("commandResult", commandResult);
+                        restUtil.post(commonConfig.getServerUrl() + "/wgcloud/agent/updateResult", reportJson);
+                    } catch (Exception e) {
+                        logger.error("Error processing a command task: {}", commandJson.toString(), e);
+                        if (commandResult != null) {
+                            commandResult.setStatus("FAILED");
+                            commandResult.setStderr("Agent failed to process task: " + e.getMessage());
+                            commandResult.setEndTime(new Date());
+                            JSONObject reportJson = new JSONObject();
+                            reportJson.put("commandResult", commandResult);
+                            restUtil.post(commonConfig.getServerUrl() + "/wgcloud/agent/updateResult", reportJson);
+                        }
+                    }
+                });
+                }
         } catch (Exception e) {
-            logger.error("Command task executor error", e);
+            logger.error("Command task executor (fetcher) error", e);
         }
     }
 

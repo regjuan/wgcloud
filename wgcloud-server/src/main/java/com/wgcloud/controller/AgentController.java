@@ -2,6 +2,7 @@ package com.wgcloud.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONArray;
+import cn.hutool.json.JSONConfig;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.github.pagehelper.PageInfo;
@@ -149,13 +150,12 @@ public class AgentController {
 
     @ResponseBody
     @RequestMapping("/getCommand")
-    public cn.hutool.json.JSONObject getCommand(@RequestBody String paramBean) {
-        cn.hutool.json.JSONObject agentJsonObject = (cn.hutool.json.JSONObject) JSONUtil.parse(paramBean);
-        cn.hutool.json.JSONObject resultJson = new cn.hutool.json.JSONObject();
-        if (!tokenUtils.checkAgentToken(agentJsonObject)) {
-            logger.error("token is invalidate");
-            return null;
-        }
+    public JSONArray getCommand(@RequestBody String paramBean) {
+        JSONObject agentJsonObject = (JSONObject) JSONUtil.parse(paramBean);
+//        if (!tokenUtils.checkAgentToken(agentJsonObject)) {
+//            logger.error("token is invalidate");
+//            return null;
+//        }
         String hostname = agentJsonObject.get("hostname").toString();
         if (StringUtils.isEmpty(hostname)) {
             return null;
@@ -164,26 +164,35 @@ public class AgentController {
             Map<String, Object> params = new HashMap<>();
             params.put("hostname", hostname);
             params.put("status", "PENDING");
-            // 获取最老的一条待执行任务
-            PageInfo<CommandResult> pageInfo = commandResultService.selectByParams(params, 1, 1);
-            if (pageInfo.getList().size() < 1) {
-                return null;
+            // 获取所有待执行任务,每次最多100条
+            PageInfo<CommandResult> pageInfo = commandResultService.selectByParams(params, 1, 100);
+            if (pageInfo.getList().isEmpty()) {
+                return new JSONArray();
             }
-            CommandResult commandResult = pageInfo.getList().get(0);
-            Command command = commandService.selectById(commandResult.getCommandId());
-            if (command == null) {
-                commandResult.setStatus("CANCELLED");
+
+            List<CommandResult> commandResults = pageInfo.getList();
+            JSONArray resultArray = new JSONArray();
+
+            for (CommandResult commandResult : commandResults) {
+                Command command = commandService.selectById(commandResult.getCommandId());
+                if (command == null) {
+                    commandResult.setStatus("CANCELLED");
+                    commandResultService.updateById(commandResult);
+                    continue;
+                }
+
+                commandResult.setStatus("RUNNING");
+                commandResult.setStartTime(new Date());
                 commandResultService.updateById(commandResult);
-                return null;
+
+                JSONObject resultJson = new JSONObject();
+
+                JSONConfig config = JSONConfig.create().setDateFormat("yyyy-MM-dd HH:mm:ss");
+                resultJson.put("commandResult", JSONUtil.toJsonStr(commandResult, config));
+                resultJson.put("command", JSONUtil.toJsonStr(command, config));
+                resultArray.add(resultJson);
             }
-
-            commandResult.setStatus("RUNNING");
-            commandResult.setStartTime(new Date());
-            commandResultService.updateById(commandResult);
-
-            resultJson.put("commandResult", commandResult);
-            resultJson.put("command", command);
-            return resultJson;
+            return resultArray;
         } catch (Exception e) {
             logger.error("Agent获取指令任务错误", e);
             return null;
@@ -192,9 +201,9 @@ public class AgentController {
 
     @ResponseBody
     @RequestMapping("/updateResult")
-    public cn.hutool.json.JSONObject updateResult(@RequestBody String paramBean) {
-        cn.hutool.json.JSONObject agentJsonObject = (cn.hutool.json.JSONObject) JSONUtil.parse(paramBean);
-        cn.hutool.json.JSONObject resultJson = new cn.hutool.json.JSONObject();
+    public JSONObject updateResult(@RequestBody String paramBean) {
+        JSONObject agentJsonObject = (JSONObject) JSONUtil.parse(paramBean);
+        JSONObject resultJson = new JSONObject();
         if (!tokenUtils.checkAgentToken(agentJsonObject)) {
             logger.error("token is invalidate");
             resultJson.put("result", "error：token is invalidate");
