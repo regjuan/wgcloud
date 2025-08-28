@@ -356,3 +356,25 @@ CREATE TABLE `COMMAND_RESULT` (
                                   `END_TIME` datetime DEFAULT NULL,
                                   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='指令执行历史结果';
+
+CREATE TABLE LOG_MON (
+                         ID VARCHAR(32) NOT NULL COMMENT '主键ID',
+                         APP_NAME VARCHAR(255) NOT NULL COMMENT '应用名称',
+                         FILE_PATH VARCHAR(500) NOT NULL COMMENT '文件路径',
+                         MATCH_KEYWORDS VARCHAR(500) COMMENT '匹配关键词',
+                         UN_MATCH_KEYWORDS VARCHAR(500) COMMENT '不匹配关键词',
+                         TARGET_TAGS VARCHAR(255) COMMENT '目标标签',
+                         CREATE_TIME TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                         PRIMARY KEY (ID)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='日志监控表';
+
+CREATE TABLE `ALARM_INFO` (
+                              `ID` CHAR(32) NOT NULL,
+                              `HOST_NAME` VARCHAR (255) DEFAULT NULL COMMENT '主机名或IP地址',
+                              `LOG_TITLE` VARCHAR (255) DEFAULT NULL COMMENT '告警标题/类型',
+                              `INFO_CONTENT` TEXT COMMENT '告警详情',
+                              `SOURCE` VARCHAR (100) DEFAULT NULL COMMENT '告警来源',
+                              `STATE` CHAR(1) DEFAULT NULL COMMENT '告警状态',
+                              `CREATE_TIME` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                              PRIMARY KEY (`ID`),
+                              KEY `ALARM_INFO_HOST_INDEX` (`HOST_NAME`, `CREATE_TIME`) USING BTREE) ENGINE = InnoDB DEFAULT CHARSET = utf8 COMMENT = '告警信息表';
