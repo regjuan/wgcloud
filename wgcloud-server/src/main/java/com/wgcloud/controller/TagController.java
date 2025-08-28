@@ -51,7 +51,7 @@ public class TagController {
         }
     }
 
-    @PostMapping
+    @PostMapping("/save")
     @ResponseBody
     public AjaxResult create(@RequestBody Tag tag) {
         try {
