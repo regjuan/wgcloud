@@ -1,5 +1,9 @@
 package com.wgcloud.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.Data;
+import org.springframework.format.annotation.DateTimeFormat;
+
 import java.util.Date;
 
 /**
@@ -10,6 +14,7 @@ import java.util.Date;
  * @Description: 查看系统信息
  * @Copyright: 2017-2024 wgcloud. All rights reserved.
  */
+@Data
 public class SystemInfo extends BaseEntity {
 
 
@@ -20,7 +25,7 @@ public class SystemInfo extends BaseEntity {
 
 
     /**
-     * host名称
+     * host名称 / 即 IP
      */
     private String hostname;
 
@@ -63,6 +68,8 @@ public class SystemInfo extends BaseEntity {
     /**
      * 创建时间
      */
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date createTime;
 
     //磁盘总使用率%
@@ -84,110 +91,5 @@ public class SystemInfo extends BaseEntity {
     private String tagNameList;
 
 
-    public String getVersion() {
-        return version;
-    }
 
-    public void setVersion(String version) {
-        this.version = version;
-    }
-
-    public String getVersionDetail() {
-        return versionDetail;
-    }
-
-    public void setVersionDetail(String versionDetail) {
-        this.versionDetail = versionDetail;
-    }
-
-
-    public String getCpuCoreNum() {
-        return cpuCoreNum;
-    }
-
-    public void setCpuCoreNum(String cpuCoreNum) {
-        this.cpuCoreNum = cpuCoreNum;
-    }
-
-
-    public Date getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(Date createTime) {
-        this.createTime = createTime;
-    }
-
-
-    public String getHostname() {
-        return hostname;
-    }
-
-    public void setHostname(String hostname) {
-        this.hostname = hostname;
-    }
-
-    public String getCpuXh() {
-        return cpuXh;
-    }
-
-    public void setCpuXh(String cpuXh) {
-        this.cpuXh = cpuXh;
-    }
-
-    public Double getMemPer() {
-        return memPer;
-    }
-
-    public void setMemPer(Double memPer) {
-        this.memPer = memPer;
-    }
-
-    public Double getCpuPer() {
-        return cpuPer;
-    }
-
-    public void setCpuPer(Double cpuPer) {
-        this.cpuPer = cpuPer;
-    }
-
-    public String getState() {
-        return state;
-    }
-
-    public void setState(String state) {
-        this.state = state;
-    }
-
-    public String getRemark() {
-        return remark;
-    }
-
-    public void setRemark(String remark) {
-        this.remark = remark;
-    }
-
-    public Double getDiskPer() {
-        return diskPer;
-    }
-
-    public void setDiskPer(Double diskPer) {
-        this.diskPer = diskPer;
-    }
-
-    public String getTags() {
-        return tags;
-    }
-
-    public void setTags(String tags) {
-        this.tags = tags;
-    }
-
-    public String getTagNameList() {
-        return tagNameList;
-    }
-
-    public void setTagNameList(String tagNameList) {
-        this.tagNameList = tagNameList;
-    }
 }

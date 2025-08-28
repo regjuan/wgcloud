@@ -1,4 +1,4 @@
-package com.wgcloud.util;
+package com.wgcloud;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
