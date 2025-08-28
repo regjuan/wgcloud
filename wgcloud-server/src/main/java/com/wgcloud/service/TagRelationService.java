@@ -39,4 +39,8 @@ public class TagRelationService {
     public int deleteByRelationIdAndRelationType(Map<String, Object> params) throws Exception {
         return tagRelationMapper.deleteByRelationIdAndRelationType(params);
     }
+
+    public List<String> selectTagNamesByHostId(String hostId) throws Exception {
+        return tagRelationMapper.selectTagNamesByHostId(hostId);
+    }
 }

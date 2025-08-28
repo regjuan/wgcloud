@@ -61,4 +61,11 @@
         DELETE FROM TAG_RELATION WHERE RELATION_ID = #{relationId} AND RELATION_TYPE = #{relationType}
     </delete>
 
+    <select id="selectTagNamesByHostId" parameterType="java.lang.String" resultType="java.lang.String">
+        SELECT T2.TAG_NAME
+        FROM TAG_RELATION T1
+        LEFT JOIN TAG T2 ON T1.TAG_ID = T2.ID
+        WHERE T1.RELATION_ID = #{hostId}
+    </select>
+
 </mapper>
