@@ -5,6 +5,8 @@ import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.wgcloud.entity.*;
+import com.wgcloud.task.BatchData;
+import com.wgcloud.task.LogMonTask;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,14 +27,6 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.Date;
 
-/**
- * @version V2.3
- * @ClassName:ScheduledTask.java
- * @author: wgcloud
- * @date: 2019年11月16日
- * @Description: ScheduledTask.java
- * @Copyright: 2017-2024 www.wgstart.com. All rights reserved.
- */
 @Component
 public class ScheduledTask {
 
@@ -45,16 +39,42 @@ public class ScheduledTask {
 
     private SystemInfo systemInfo = null;
 
-
-    /**
-     * 线程池
-     */
     static ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 10, 10, TimeUnit.MINUTES, new LinkedBlockingDeque<>());
 
     /**
-     * 60秒后执行，每隔120秒执行, 单位：ms。
+     * 1分钟后执行，每隔60秒执行, 单位：ms。
+     * 同步日志监控任务
      */
-    @Scheduled(initialDelay = 59 * 1000L, fixedRate = 120 * 1000)
+    @Scheduled(initialDelay = 40 * 1000L, fixedRate = 60 * 1000)
+    public void logMonSchedule(){
+        try {
+            // 1. 获取本机标签
+            JSONObject paramsJson = new JSONObject();
+            paramsJson.put("hostname", commonConfig.getBindIp());
+            String tagsResult = restUtil.post(commonConfig.getServerUrl() + "/wgcloud/agent/tags", paramsJson);
+            if(StringUtils.isEmpty(tagsResult)){
+                logger.warn("Could not get tags for this agent, log monitoring will be skipped.");
+                return;
+            }
+            JSONObject responseJson = JSONUtil.parseObj(tagsResult);
+            JSONArray dataArray = responseJson.getJSONArray("data");
+            List<String> agentTags = JSONUtil.toList(dataArray, String.class);
+            if(agentTags.isEmpty()){
+                return;
+            }
+
+            // 2. 执行同步逻辑
+            LogMonTask logMonTask = new LogMonTask(agentTags, restUtil, commonConfig);
+            logMonTask.syncLogMonTasks();
+
+        } catch (Exception e) {
+            logger.error("Error in logMonSchedule", e);
+        }
+    }
+
+
+//    核心上报
+    @Scheduled(initialDelay = 59 * 1000L, fixedRate = 60 * 1000)
     public void minTask() {
         List<AppInfo> APP_INFO_LIST_CP = new ArrayList<AppInfo>();
         APP_INFO_LIST_CP.addAll(appInfoList);
@@ -104,21 +124,16 @@ public class ScheduledTask {
                 if (memState != null) {
                     systemInfo.setVersionDetail(systemInfo.getVersion() + "，总内存：" + oshi.util.FormatUtil.formatBytes(hal.getMemory().getTotal()));
                     systemInfo.setMemPer(memState.getUsePer());
-                } else {
-                    systemInfo.setMemPer(0d);
                 }
                 if (cpuState != null) {
                     systemInfo.setCpuPer(cpuState.getSys());
-                } else {
-                    systemInfo.setCpuPer(0d);
                 }
                 jsonObject.put("systemInfo", systemInfo);
             }
             if (deskStateList != null) {
                 jsonObject.put("deskStateList", deskStateList);
             }
-            //进程信息
-            if (APP_INFO_LIST_CP.size() > 0) {
+            if (!APP_INFO_LIST_CP.isEmpty()) {
                 List<AppInfo> appInfoResList = new ArrayList<>();
                 List<AppState> appStateResList = new ArrayList<>();
                 for (AppInfo appInfo : APP_INFO_LIST_CP) {
@@ -143,13 +158,22 @@ public class ScheduledTask {
                 jsonObject.put("appStateList", appStateResList);
             }
 
-            logger.debug("---------------" + jsonObject.toString());
+            logger.debug("--------------- {}", jsonObject.toString());
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.toString());
             logInfo.setInfoContent(e.toString());
         } finally {
+            logger.info("minTask {}", BatchData.LOG_INFO_LIST.size());
+            if(!BatchData.LOG_INFO_LIST.isEmpty()){
+                jsonObject.put("logInfoList", BatchData.LOG_INFO_LIST);
+                BatchData.LOG_INFO_LIST.clear();
+            }
+
             if (!StringUtils.isEmpty(logInfo.getInfoContent())) {
-                jsonObject.put("logInfo", logInfo);
+                if(jsonObject.getJSONArray("logInfoList") == null){
+                   jsonObject.put("logInfoList", new JSONArray());
+                }
+                jsonObject.getJSONArray("logInfoList").add(logInfo);
             }
             restUtil.post(commonConfig.getServerUrl() + "/wgcloud/agent/minTask", jsonObject);
         }
@@ -158,35 +182,31 @@ public class ScheduledTask {
 
 
     /**
-     * 30秒后执行，每隔5分钟执行, 单位：ms。
+     * 78秒后执行，每隔1分钟执行, 单位：ms。
      * 获取监控进程
      */
     @Scheduled(initialDelay = 28 * 1000L, fixedRate = 300 * 1000)
     public void appInfoListTask() {
-        JSONObject jsonObject = new JSONObject();
-        LogInfo logInfo = new LogInfo();
-        Timestamp t = FormatUtil.getNowTime();
-        logInfo.setHostname(commonConfig.getBindIp() + "：Agent获取进程列表错误");
-        logInfo.setCreateTime(t);
         try {
             JSONObject paramsJson = new JSONObject();
             paramsJson.put("hostname", commonConfig.getBindIp());
             String resultJson = restUtil.post(commonConfig.getServerUrl() + "/wgcloud/appInfo/agentList", paramsJson);
             if (resultJson != null) {
                 JSONArray resultArray = JSONUtil.parseArray(resultJson);
-                appInfoList.clear();
-                if (resultArray.size() > 0) {
-                    appInfoList = JSONUtil.toList(resultArray, AppInfo.class);
+                List<AppInfo> newAppInfoList = JSONUtil.toList(resultArray, AppInfo.class);
+                synchronized (appInfoList){
+                    appInfoList.clear();
+                    appInfoList.addAll(newAppInfoList);
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("获取监控进程列表错误",e);
+            LogInfo logInfo = new LogInfo();
+            Timestamp t = FormatUtil.getNowTime();
+            logInfo.setHostname(commonConfig.getBindIp() + "：Agent获取进程列表错误");
+            logInfo.setCreateTime(t);
             logInfo.setInfoContent(e.toString());
-        } finally {
-            if (!StringUtils.isEmpty(logInfo.getInfoContent())) {
-                jsonObject.put("logInfo", logInfo);
-            }
-            restUtil.post(commonConfig.getServerUrl() + "/wgcloud/agent/minTask", jsonObject);
+            BatchData.LOG_INFO_LIST.add(logInfo);
         }
     }
 
@@ -197,7 +217,6 @@ public class ScheduledTask {
      */
     @Scheduled(initialDelay = 20 * 1000L, fixedRate = 60 * 1000)
     public void commandTaskExecutor() {
-        JSONObject resultJson = null;
         try {
             //1. 获取任务列表
             JSONObject paramsJson = new JSONObject();

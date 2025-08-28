@@ -232,7 +232,7 @@
             GROUP BY si.ID
             HAVING COUNT(DISTINCT tr.TAG_ID) = #{tags.length}
         </if>
-        order by si.CREATE_TIME asc
+        order by si.CREATE_TIME desc
     </select>
 	
 </mapper>

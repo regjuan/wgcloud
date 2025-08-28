@@ -52,6 +52,8 @@ public class ScheduledTask {
     @Autowired
     LogInfoService logInfoService;
     @Autowired
+    AlarmInfoService alarmInfoService;
+    @Autowired
     AppInfoService appInfoService;
     @Autowired
     CpuStateService cpuStateService;
@@ -149,9 +151,7 @@ public class ScheduledTask {
             List<SystemInfo> list = systemInfoService.selectAllByParams(params);
             if (!CollectionUtil.isEmpty(list)) {
                 List<SystemInfo> updateList = new ArrayList<SystemInfo>();
-                List<LogInfo> logInfoList = new ArrayList<LogInfo>();
                 for (SystemInfo systemInfo : list) {
-
                     Date createTime = systemInfo.getCreateTime();
                     long diff = date.getTime() - createTime.getTime();
                     if (diff > delayTime) {
@@ -159,11 +159,13 @@ public class ScheduledTask {
                             continue;
                         }
                         systemInfo.setState(StaticKeys.DOWN_STATE);
-                        LogInfo logInfo = new LogInfo();
-                        logInfo.setHostname("主机下线：" + systemInfo.getHostname());
-                        logInfo.setInfoContent("超过10分钟未上报状态，可能已下线：" + systemInfo.getHostname());
-                        logInfo.setState(StaticKeys.LOG_ERROR);
-                        logInfoList.add(logInfo);
+                        AlarmInfo alarmInfo = new AlarmInfo();
+                        alarmInfo.setHostname(systemInfo.getHostname());
+                        alarmInfo.setLogTitle("主机下线");
+                        alarmInfo.setInfoContent("主机「" + systemInfo.getHostname() + "」超过10分钟未上报状态，可能已下线");
+                        alarmInfo.setSource("hostDownCheckTask");
+                        alarmInfo.setState(StaticKeys.LOG_ERROR);
+                        alarmInfoService.save(alarmInfo);
                         updateList.add(systemInfo);
                         Runnable runnable = () -> {
                             WarnMailUtil.sendHostDown(systemInfo, true);
@@ -181,9 +183,6 @@ public class ScheduledTask {
                 if (updateList.size() > 0) {
                     systemInfoService.updateRecord(updateList);
                 }
-                if (logInfoList.size() > 0) {
-                    logInfoService.saveRecord(logInfoList);
-                }
             }
         } catch (Exception e) {
             logger.error("检测主机是否下线错误", e);
@@ -194,9 +193,7 @@ public class ScheduledTask {
             List<AppInfo> list = appInfoService.selectAllByParams(params);
             if (!CollectionUtil.isEmpty(list)) {
                 List<AppInfo> updateList = new ArrayList<AppInfo>();
-                List<LogInfo> logInfoList = new ArrayList<LogInfo>();
                 for (AppInfo appInfo : list) {
-
                     Date createTime = appInfo.getCreateTime();
                     long diff = date.getTime() - createTime.getTime();
                     if (diff > delayTime) {
@@ -204,11 +201,13 @@ public class ScheduledTask {
                             continue;
                         }
                         appInfo.setState(StaticKeys.DOWN_STATE);
-                        LogInfo logInfo = new LogInfo();
-                        logInfo.setHostname("进程下线IP：" + appInfo.getHostname() + "，名称：" + appInfo.getAppName());
-                        logInfo.setInfoContent("超过10分钟未上报状态，可能已下线IP：" + appInfo.getHostname() + "，名称：" + appInfo.getAppName() + "，进程ID：" + appInfo.getAppPid());
-                        logInfo.setState(StaticKeys.LOG_ERROR);
-                        logInfoList.add(logInfo);
+                        AlarmInfo alarmInfo = new AlarmInfo();
+                        alarmInfo.setHostname(appInfo.getHostname());
+                        alarmInfo.setLogTitle("进程下线");
+                        alarmInfo.setInfoContent("进程「" + appInfo.getAppName() + "」在主机「" + appInfo.getHostname() + "」上超过10分钟未上报状态，可能已下线");
+                        alarmInfo.setSource("hostDownCheckTask");
+                        alarmInfo.setState(StaticKeys.LOG_ERROR);
+                        alarmInfoService.save(alarmInfo);
                         updateList.add(appInfo);
                         Runnable runnable = () -> {
                             WarnMailUtil.sendAppDown(appInfo, true);
@@ -225,9 +224,6 @@ public class ScheduledTask {
                 }
                 if (updateList.size() > 0) {
                     appInfoService.updateRecord(updateList);
-                }
-                if (logInfoList.size() > 0) {
-                    logInfoService.saveRecord(logInfoList);
                 }
             }
         } catch (Exception e) {
@@ -247,7 +243,6 @@ public class ScheduledTask {
         logger.info("heathMonitorTask------------" + DateUtil.getDateTimeString(new Date()));
         Map<String, Object> params = new HashMap<>();
         List<HeathMonitor> heathMonitors = new ArrayList<HeathMonitor>();
-        List<LogInfo> logInfoList = new ArrayList<LogInfo>();
         Date date = DateUtil.getNowTime();
         try {
             List<HeathMonitor> heathMonitorAllList = heathMonitorService.selectAllByParams(params);
@@ -262,11 +257,13 @@ public class ScheduledTask {
                         if (!StringUtils.isEmpty(WarnPools.MEM_WARN_MAP.get(h.getId()))) {
                             continue;
                         }
-                        LogInfo logInfo = new LogInfo();
-                        logInfo.setHostname("服务接口检测异常：" + h.getAppName());
-                        logInfo.setInfoContent("服务接口检测异常：" + h.getAppName() + "，" + h.getHeathUrl() + "，返回状态" + h.getHeathStatus());
-                        logInfo.setState(StaticKeys.LOG_ERROR);
-                        logInfoList.add(logInfo);
+                        AlarmInfo alarmInfo = new AlarmInfo();
+                        alarmInfo.setHostname(h.getAppName());
+                        alarmInfo.setLogTitle("服务接口检测异常");
+                        alarmInfo.setInfoContent("服务接口「" + h.getAppName() + "」(" + h.getHeathUrl() + ") 请求失败，返回状态码：" + h.getHeathStatus());
+                        alarmInfo.setSource("heathMonitorTask");
+                        alarmInfo.setState(StaticKeys.LOG_ERROR);
+                        alarmInfoService.save(alarmInfo);
                         Runnable runnable = () -> {
                             WarnMailUtil.sendHeathInfo(h, true);
                         };
@@ -281,13 +278,15 @@ public class ScheduledTask {
                     }
                 }
                 heathMonitorService.updateRecord(heathMonitors);
-                if (logInfoList.size() > 0) {
-                    logInfoService.saveRecord(logInfoList);
-                }
             }
         } catch (Exception e) {
             logger.error("服务接口检测任务错误", e);
-            logInfoService.save("服务接口检测错误", e.toString(), StaticKeys.LOG_ERROR);
+            AlarmInfo alarmInfo = new AlarmInfo();
+            alarmInfo.setLogTitle("服务接口检测任务错误");
+            alarmInfo.setInfoContent(e.toString());
+            alarmInfo.setSource("heathMonitorTask");
+            alarmInfo.setState(StaticKeys.LOG_ERROR);
+            alarmInfoService.save(alarmInfo);
         }
     }
 
@@ -336,7 +335,12 @@ public class ScheduledTask {
             }
         } catch (Exception e) {
             logger.error("数据表监控任务错误", e);
-            logInfoService.save("数据表监控任务错误", e.toString(), StaticKeys.LOG_ERROR);
+            AlarmInfo alarmInfo = new AlarmInfo();
+            alarmInfo.setLogTitle("数据表监控任务错误");
+            alarmInfo.setInfoContent(e.toString());
+            alarmInfo.setSource("tableCountTask");
+            alarmInfo.setState(StaticKeys.LOG_ERROR);
+            alarmInfoService.save(alarmInfo);
         }
     }
 
@@ -456,7 +460,12 @@ public class ScheduledTask {
         } catch (Exception e) {
             // TODO Auto-generated catch block
             logger.error("批量提交监控数据错误----------", e);
-            logInfoService.save("commitTask", "批量提交监控数据错误：" + e.toString(), StaticKeys.LOG_ERROR);
+            AlarmInfo alarmInfo = new AlarmInfo();
+            alarmInfo.setLogTitle("批量提交监控数据错误");
+            alarmInfo.setInfoContent(e.toString());
+            alarmInfo.setSource("commitTask");
+            alarmInfo.setState(StaticKeys.LOG_ERROR);
+            alarmInfoService.save(alarmInfo);
         }
         logger.info("批量提交监控数据任务结束----------" + DateUtil.getCurrentDateTime());
     }
@@ -495,7 +504,12 @@ public class ScheduledTask {
 
         } catch (Exception e) {
             logger.error("定时清空历史数据任务出错：", e);
-            logInfoService.save("定时清空历史数据错误", "定时清空历史数据错误：" + e.toString(), StaticKeys.LOG_ERROR);
+            AlarmInfo alarmInfo = new AlarmInfo();
+            alarmInfo.setLogTitle("定时清空历史数据错误");
+            alarmInfo.setInfoContent(e.toString());
+            alarmInfo.setSource("clearHisdataTask");
+            alarmInfo.setState(StaticKeys.LOG_ERROR);
+            alarmInfoService.save(alarmInfo);
         }
         logger.info("定时清空历史数据任务结束----------" + DateUtil.getCurrentDateTime());
     }

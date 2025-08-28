@@ -6,11 +6,9 @@ import cn.hutool.json.JSONConfig;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.github.pagehelper.PageInfo;
+import com.wgcloud.common.AjaxResult;
 import com.wgcloud.entity.*;
-import com.wgcloud.service.CommandResultService;
-import com.wgcloud.service.CommandService;
-import com.wgcloud.service.LogInfoService;
-import com.wgcloud.service.SystemInfoService;
+import com.wgcloud.service.*;
 import com.wgcloud.util.TokenUtils;
 import com.wgcloud.util.msg.WarnMailUtil;
 import com.wgcloud.util.staticvar.BatchData;
@@ -32,14 +30,6 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-/**
- * @version v2.3
- * @ClassName:AgentController.java
- * @author: http://www.wgstart.com
- * @date: 2019年11月16日
- * @Description: AgentController.java
- * @Copyright: 2017-2024 wgcloud. All rights reserved.
- */
 @Controller
 @RequestMapping("/agent")
 public class AgentController {
@@ -53,7 +43,11 @@ public class AgentController {
     @Resource
     private LogInfoService logInfoService;
     @Resource
+    private AlarmInfoService alarmInfoService;
+    @Resource
     private SystemInfoService systemInfoService;
+    @Resource
+    private TagRelationService tagRelationService;
     @Autowired
     private TokenUtils tokenUtils;
     @Autowired
@@ -76,17 +70,29 @@ public class AgentController {
         JSONObject sysLoadState = agentJsonObject.getJSONObject("sysLoadState");
         JSONArray appInfoList = agentJsonObject.getJSONArray("appInfoList");
         JSONArray appStateList = agentJsonObject.getJSONArray("appStateList");
-        JSONObject logInfo = agentJsonObject.getJSONObject("logInfo");
+        JSONArray logInfoList = agentJsonObject.getJSONArray("logInfoList");
         JSONObject systemInfo = agentJsonObject.getJSONObject("systemInfo");
         JSONObject netIoState = agentJsonObject.getJSONObject("netIoState");
         JSONArray deskStateList = agentJsonObject.getJSONArray("deskStateList");
 
         try {
 
-            if (logInfo != null) {
-                LogInfo bean = new LogInfo();
-                BeanUtil.copyProperties(logInfo, bean);
-                BatchData.LOG_INFO_LIST.add(bean);
+            if (logInfoList != null) {
+                List<LogInfo> logInfos = JSONUtil.toList(logInfoList, LogInfo.class);
+                for (LogInfo logInfo : logInfos) {
+                    String content = logInfo.getInfoContent();
+                    // Check for agent error keywords
+                    if (content != null && (content.contains("Agent获取进程列表错误") || content.contains("Agent错误"))) {
+                        AlarmInfo alarmInfo = new AlarmInfo();
+                        BeanUtil.copyProperties(logInfo, alarmInfo);
+                        alarmInfo.setLogTitle("Agent错误");
+                        alarmInfo.setSource("wgcloud-agent");
+                        alarmInfoService.save(alarmInfo);
+                    } else {
+                        // If it's not an agent error, add it to the regular log batch
+                        BatchData.LOG_INFO_LIST.add(logInfo);
+                    }
+                }
             }
             if (cpuState != null) {
                 CpuState bean = new CpuState();
@@ -145,6 +151,32 @@ public class AgentController {
             resultJson.put("result", "error：" + e.toString());
         } finally {
             return resultJson;
+        }
+    }
+
+
+    @ResponseBody
+    @RequestMapping("/tags")
+    public AjaxResult tags(@RequestBody String paramBean) {
+        JSONObject agentJsonObject = (JSONObject) JSONUtil.parse(paramBean);
+        if (!tokenUtils.checkAgentToken(agentJsonObject)) {
+            logger.error("token is invalidate");
+            return AjaxResult.error("token is invalidate");
+        }
+        String hostname = agentJsonObject.getStr("hostname");
+        try {
+            Map<String, Object> params = new HashMap<>();
+            params.put("hostname", hostname);
+            PageInfo<SystemInfo> pageInfo = systemInfoService.selectByParams(params, 1, 1);
+            if (pageInfo.getList().size() > 0) {
+                SystemInfo systemInfo = pageInfo.getList().get(0);
+                List<String> tags = tagRelationService.selectTagNamesByHostId(systemInfo.getId());
+                return AjaxResult.success(tags);
+            }
+            return AjaxResult.success(new JSONArray());
+        } catch (Exception e) {
+            logger.error("Agent获取标签列表错误", e);
+            return AjaxResult.error("Agent获取标签列表错误");
         }
     }
 

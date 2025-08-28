@@ -1,15 +1,13 @@
 package com.wgcloud.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.Data;
+import org.springframework.format.annotation.DateTimeFormat;
+
 import java.util.Date;
 
-/**
- * @version v2.3
- * @ClassName:LogInfo.java
- * @author: http://www.wgstart.com
- * @date: 2019年11月16日
- * @Description: 日志信息
- * @Copyright: 2017-2024 wgcloud. All rights reserved.
- */
+
+@Data
 public class LogInfo extends BaseEntity {
 
     /**
@@ -17,10 +15,14 @@ public class LogInfo extends BaseEntity {
      */
     private static final long serialVersionUID = 1565538727002722890L;
 
+    private String LogMonId;
+
     /**
      * host名称
      */
     private String hostname;
+
+    private String infoTitle;
 
     /**
      * 描述
@@ -36,47 +38,11 @@ public class LogInfo extends BaseEntity {
     /**
      * 创建时间
      */
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date createTime;
 
 
-    public String getHostname() {
-        return hostname;
-    }
-
-
-    public void setHostname(String hostname) {
-        this.hostname = hostname;
-    }
-
-
-    public String getInfoContent() {
-        return infoContent;
-    }
-
-
-    public void setInfoContent(String infoContent) {
-        this.infoContent = infoContent;
-    }
-
-
-    public String getState() {
-        return state;
-    }
-
-
-    public void setState(String state) {
-        this.state = state;
-    }
-
-
-    public Date getCreateTime() {
-        return createTime;
-    }
-
-
-    public void setCreateTime(Date createTime) {
-        this.createTime = createTime;
-    }
 
 
 }

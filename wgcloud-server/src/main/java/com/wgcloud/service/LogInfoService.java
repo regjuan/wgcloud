@@ -15,14 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @version v2.3
- * @ClassName:LogInfoService.java
- * @author: http://www.wgstart.com
- * @date: 2019年11月16日
- * @Description: LogInfoService.java
- * @Copyright: 2017-2024 wgcloud. All rights reserved.
- */
+
 @Service
 public class LogInfoService {
 
@@ -45,22 +38,32 @@ public class LogInfoService {
         Map<String, Object> map = new HashMap<String, Object>();
         for (LogInfo as : recordList) {
             as.setId(UUIDUtil.getUUID());
+            as.setInfoTitle("日志监控");
         }
         logInfoMapper.insertList(recordList);
     }
 
-    public void save(String hostname, String infoContent, String state) {
-        LogInfo logInfo = new LogInfo();
-        logInfo.setHostname(hostname);
-        logInfo.setInfoContent(infoContent);
-        logInfo.setState(state);
-        logInfo.setId(UUIDUtil.getUUID());
-        logInfo.setCreateTime(DateUtil.getNowTime());
+    public void save(LogInfo logInfo) {
         try {
             logInfoMapper.save(logInfo);
         } catch (Exception e) {
             logger.error("保存日志信息异常：", e);
         }
+    }
+
+    public void save(String hostname, String infoContent, String state) {
+        this.save(hostname, infoContent, state, null);
+    }
+
+    public void save(String hostname, String infoContent, String state, String logMonId) {
+        LogInfo logInfo = new LogInfo();
+        logInfo.setHostname(hostname);
+        logInfo.setInfoContent(infoContent);
+        logInfo.setState(state);
+        logInfo.setLogMonId(logMonId);
+        logInfo.setId(UUIDUtil.getUUID());
+        logInfo.setCreateTime(DateUtil.getNowTime());
+        this.save(logInfo);
     }
 
     public int countByParams(Map<String, Object> params) throws Exception {

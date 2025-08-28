@@ -1,21 +1,19 @@
 package com.wgcloud.entity;
 
+import lombok.Data;
+
 import java.util.Date;
 
-/**
- * @version V2.3
- * @ClassName:LogInfo.java
- * @author: wgcloud
- * @date: 2019年11月16日
- * @Description: 日志信息
- * @Copyright: 2017-2024 www.wgstart.com. All rights reserved.
- */
+
+@Data
 public class LogInfo extends BaseEntity {
 
     /**
      *
      */
     private static final long serialVersionUID = 1565538727002722890L;
+
+    private String LogMonId;
 
     /**
      * host名称
@@ -39,44 +37,6 @@ public class LogInfo extends BaseEntity {
     private Date createTime;
 
 
-    public String getHostname() {
-        return hostname;
-    }
-
-
-    public void setHostname(String hostname) {
-        this.hostname = hostname;
-    }
-
-
-    public String getInfoContent() {
-        return infoContent;
-    }
-
-
-    public void setInfoContent(String infoContent) {
-        this.infoContent = infoContent;
-    }
-
-
-    public String getState() {
-        return state;
-    }
-
-
-    public void setState(String state) {
-        this.state = state;
-    }
-
-
-    public Date getCreateTime() {
-        return createTime;
-    }
-
-
-    public void setCreateTime(Date createTime) {
-        this.createTime = createTime;
-    }
 
 
 }
