@@ -5,9 +5,8 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class HostStatusDto {
+public class LogMonitorReportByHostDto {
     private String hostname;
-    private String ip;
     private List<String> tags;
     private String overallStatus;
     private List<MonTaskStatusDto> monTasks;

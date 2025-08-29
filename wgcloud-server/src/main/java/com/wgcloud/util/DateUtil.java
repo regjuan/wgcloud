@@ -133,4 +133,65 @@ public class DateUtil {
         return now.getTime();
     }
 
+    /**
+     * 获取指定日期的开始时间（00:00:00.000）
+     * @param date 指定日期
+     * @return 当天的开始时间
+     */
+    public static Date getDailyStartTime(Date date) {
+        if (date == null) {
+            return null;
+        }
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        // 设置时分秒毫秒为0
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+
+        return calendar.getTime();
+    }
+
+    /**
+     * 获取指定日期的结束时间（23:59:59.999）
+     * @param date 指定日期
+     * @return 当天的结束时间
+     */
+    public static Date getDailyEndTime(Date date) {
+        if (date == null) {
+            return null;
+        }
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        // 设置时分秒毫秒为最大值
+        calendar.set(Calendar.HOUR_OF_DAY, 23);
+        calendar.set(Calendar.MINUTE, 59);
+        calendar.set(Calendar.SECOND, 59);
+        calendar.set(Calendar.MILLISECOND, 999);
+
+        return calendar.getTime();
+    }
+
+    /**
+     * 获取指定日期的开始时间（返回Timestamp类型）
+     * @param date 指定日期
+     * @return 当天的开始时间Timestamp
+     */
+    public static Timestamp getDailyStartTimeAsTimestamp(Date date) {
+        Date startTime = getDailyStartTime(date);
+        return startTime != null ? new Timestamp(startTime.getTime()) : null;
+    }
+
+    /**
+     * 获取指定日期的结束时间（返回Timestamp类型）
+     * @param date 指定日期
+     * @return 当天的结束时间Timestamp
+     */
+    public static Timestamp getDailyEndTimeAsTimestamp(Date date) {
+        Date endTime = getDailyEndTime(date);
+        return endTime != null ? new Timestamp(endTime.getTime()) : null;
+    }
 }

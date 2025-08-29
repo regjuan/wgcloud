@@ -7,17 +7,21 @@
         <result column="FILE_PATH" property="filePath" jdbcType="CHAR" />
         <result column="MATCH_KEYWORDS" property="matchKeywords" jdbcType="CHAR" />
         <result column="UN_MATCH_KEYWORDS" property="unMatchKeywords" jdbcType="CHAR" />
+        <result column="ACTIVE" property="active" jdbcType="CHAR" />
         <result column="TARGET_TAGS" property="targetTags" jdbcType="CHAR" />
         <result column="CREATE_TIME" property="createTime" jdbcType="TIMESTAMP" />
     </resultMap>
 
     <sql id="tableColumnList">
-        ID,APP_NAME,FILE_PATH,MATCH_KEYWORDS,UN_MATCH_KEYWORDS,TARGET_TAGS,CREATE_TIME
+        ID,APP_NAME,FILE_PATH,MATCH_KEYWORDS,UN_MATCH_KEYWORDS,ACTIVE,TARGET_TAGS,CREATE_TIME
     </sql>
 
     <sql id="queryByParams">
         <if test="appName != null and appName != ''">
             <![CDATA[ AND APP_NAME LIKE CONCAT('%',#{appName},'%')]]>
+        </if>
+        <if test="active != null and active != ''">
+            AND ACTIVE = #{active}
         </if>
         <if test="tags != null">
             AND
@@ -48,6 +52,7 @@
             <if test="filePath != null">FILE_PATH,</if>
             <if test="matchKeywords != null">MATCH_KEYWORDS,</if>
             <if test="unMatchKeywords != null">UN_MATCH_KEYWORDS,</if>
+            <if test="active != null">ACTIVE,</if>
             <if test="targetTags != null">TARGET_TAGS,</if>
             <if test="createTime != null">CREATE_TIME</if>
         </trim>
@@ -57,6 +62,7 @@
             <if test="filePath != null">#{filePath},</if>
             <if test="matchKeywords != null">#{matchKeywords},</if>
             <if test="unMatchKeywords != null">#{unMatchKeywords},</if>
+            <if test="active != null">#{active},</if>
             <if test="targetTags != null">#{targetTags},</if>
             <if test="createTime != null">#{createTime}</if>
         </trim>
@@ -69,6 +75,7 @@
             <if test="filePath != null">FILE_PATH=#{filePath},</if>
             <if test="matchKeywords != null">MATCH_KEYWORDS=#{matchKeywords},</if>
             <if test="unMatchKeywords != null">UN_MATCH_KEYWORDS=#{unMatchKeywords},</if>
+            <if test="active != null">ACTIVE=#{active},</if>
             <if test="targetTags != null">TARGET_TAGS=#{targetTags},</if>
         </set>
         WHERE ID=#{id}

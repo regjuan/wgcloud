@@ -44,8 +44,9 @@ public class ScheduledTask {
     /**
      * 1分钟后执行，每隔60秒执行, 单位：ms。
      * 同步日志监控任务
+     * 开启日志处理线程
      */
-    @Scheduled(initialDelay = 40 * 1000L, fixedRate = 60 * 1000)
+    @Scheduled(initialDelay = 60 * 1000L, fixedRate = 60 * 1000)
     public void logMonSchedule(){
         try {
             // 1. 获取本机标签
@@ -182,10 +183,10 @@ public class ScheduledTask {
 
 
     /**
-     * 78秒后执行，每隔1分钟执行, 单位：ms。
+     * 58秒后执行，每隔5分钟执行, 单位：ms。
      * 获取监控进程
      */
-    @Scheduled(initialDelay = 28 * 1000L, fixedRate = 300 * 1000)
+    @Scheduled(initialDelay = 58 * 1000L, fixedRate = 300 * 1000)
     public void appInfoListTask() {
         try {
             JSONObject paramsJson = new JSONObject();
@@ -213,7 +214,7 @@ public class ScheduledTask {
 
     /**
      * 20秒后执行，每隔1分钟执行, 单位：ms。
-     * 获取指令任务并执行
+     * 获取预案 - 指令任务并执行
      */
     @Scheduled(initialDelay = 20 * 1000L, fixedRate = 60 * 1000)
     public void commandTaskExecutor() {

@@ -34,6 +34,11 @@ public class LogMon extends BaseEntity {
     private String unMatchKeywords;
 
     /**
+     * 任务状态，1-开启，0-停止
+     */
+    private String active;
+
+    /**
      * 目标标签列表(JSON)
      */
     private String targetTags;

@@ -4,10 +4,12 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.github.pagehelper.PageInfo;
 import com.wgcloud.common.AjaxResult;
-import com.wgcloud.dto.HostStatusDto;
+import com.wgcloud.dto.LogMonitorReportByHostDto;
+import com.wgcloud.entity.LogInfo;
 import com.wgcloud.entity.LogMon;
 import com.wgcloud.service.LogInfoService;
 import com.wgcloud.service.LogMonService;
+import com.wgcloud.util.DateUtil;
 import com.wgcloud.util.TokenUtils;
 import com.wgcloud.util.staticvar.StaticKeys;
 import org.apache.commons.lang3.StringUtils;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,9 +62,18 @@ public class LogMonController {
 
     @RequestMapping(value = "statusByHost")
     @ResponseBody
-    public AjaxResult statusByHost() {
+    public AjaxResult statusByHost(HttpServletRequest request) {
         try {
-            List<HostStatusDto> statusList = logMonService.getStatusByHost();
+            String startTime = request.getParameter("startTime");
+            String endTime = request.getParameter("endTime");
+            String hostname = request.getParameter("hostname");
+            String tag = request.getParameter("tag");
+
+            if (StringUtils.isEmpty(startTime)) {
+                startTime = DateUtil.getDateTimeString(DateUtil.getDailyStartTime(new Date())) ;
+                endTime = DateUtil.getDateTimeString(DateUtil.getDailyEndTime(new Date()));
+            }
+            List<LogMonitorReportByHostDto> statusList = logMonService.getStatusByHost(startTime, endTime, hostname, tag);
             return AjaxResult.success(statusList);
         } catch (Exception e) {
             logger.error("获取主机日志监控状态错误", e);
@@ -69,6 +81,40 @@ public class LogMonController {
             return AjaxResult.error(e.getMessage());
         }
     }
+
+    @RequestMapping(value = "alertDetails")
+    @ResponseBody
+    public AjaxResult alertDetails(HttpServletRequest request) {
+        Map<String, Object> params = new HashMap<>();
+        try {
+            String logMonId = request.getParameter("logMonId");
+            String startTime = request.getParameter("startTime");
+            String endTime = request.getParameter("endTime");
+            String page = request.getParameter("page");
+            String pageSize = request.getParameter("pageSize");
+
+            params.put("logMonId", logMonId);
+            params.put("startTime", startTime);
+            params.put("endTime", endTime);
+
+            int pageNum = 1;
+            if (!StringUtils.isEmpty(page)) {
+                pageNum = Integer.parseInt(page);
+            }
+            int pageSizeNum = 10;
+            if (!StringUtils.isEmpty(pageSize)) {
+                pageSizeNum = Integer.parseInt(pageSize);
+            }
+
+            PageInfo pageInfo = logInfoService.selectByParams(params, pageNum, pageSizeNum);
+            return AjaxResult.success(pageInfo);
+        } catch (Exception e) {
+            logger.error("查询日志监控明细错误", e);
+            logInfoService.save("查询日志监控明细错误", e.toString(), StaticKeys.LOG_ERROR);
+            return AjaxResult.error(e.getMessage());
+        }
+    }
+
 
     @RequestMapping(value = "list")
     @ResponseBody

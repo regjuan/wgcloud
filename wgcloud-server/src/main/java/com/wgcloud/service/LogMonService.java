@@ -3,7 +3,7 @@ package com.wgcloud.service;
 import cn.hutool.json.JSONUtil;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
-import com.wgcloud.dto.HostStatusDto;
+import com.wgcloud.dto.LogMonitorReportByHostDto;
 import com.wgcloud.dto.MonTaskStatusDto;
 import com.wgcloud.entity.SystemInfo;
 import com.wgcloud.entity.LogInfo;
@@ -90,24 +90,33 @@ public class LogMonService {
         return logMonMapper.deleteById(id);
     }
 
-    public List<HostStatusDto> getStatusByHost() throws Exception {
-        List<SystemInfo> allHosts = systemInfoService.selectAllByParams(new HashMap<>());
+    public List<LogMonitorReportByHostDto> getStatusByHost(String startTime, String endTime, String hostname, String tag) throws Exception {
+        Map<String, Object> hostParams = new HashMap<>();
+        if (!StringUtils.isEmpty(hostname)) {
+            hostParams.put("hostname", hostname);
+        }
+        List<SystemInfo> allHosts = systemInfoService.selectAllByParams(hostParams);
         List<LogMon> allLogMons = selectAllByParams(new HashMap<>());
 
         Map<String, Object> params = new HashMap<>();
-        params.put("startTime", DateUtil.getBeforeDay(new Date(), 1));
+        params.put("startTime", startTime);
+        params.put("endTime", endTime);
         List<LogInfo> recentLogs = logInfoService.selectAllByParams(params);
 
         Map<String, List<LogInfo>> logsByHostAndMonId = recentLogs.stream()
                 .filter(log -> !StringUtils.isEmpty(log.getLogMonId()))
                 .collect(Collectors.groupingBy(log -> log.getHostname() + "::" + log.getLogMonId()));
 
-        List<HostStatusDto> resultList = new ArrayList<>();
+        List<LogMonitorReportByHostDto> resultList = new ArrayList<>();
         for (SystemInfo host : allHosts) {
-            HostStatusDto hostStatusDto = new HostStatusDto();
+            LogMonitorReportByHostDto hostStatusDto = new LogMonitorReportByHostDto();
             hostStatusDto.setHostname(host.getHostname());
-            hostStatusDto.setIp(host.getHostname());
-            hostStatusDto.setTags(tagRelationService.selectTagNamesByHostId(host.getId()));
+            List<String> hostTags = tagRelationService.selectTagNamesByHostId(host.getId());
+            hostStatusDto.setTags(hostTags);
+
+            if (!StringUtils.isEmpty(tag) && !hostTags.contains(tag)) {
+                continue;
+            }
 
             List<MonTaskStatusDto> monTaskStatusDtos = new ArrayList<>();
             String overallStatus = "OK";
