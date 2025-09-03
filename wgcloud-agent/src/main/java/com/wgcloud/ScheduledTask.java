@@ -7,6 +7,7 @@ import cn.hutool.json.JSONUtil;
 import com.wgcloud.entity.*;
 import com.wgcloud.task.BatchData;
 import com.wgcloud.task.LogMonTask;
+import com.wgcloud.task.ThreadMonTask;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +32,6 @@ import java.util.Date;
 public class ScheduledTask {
 
     private Logger logger = LoggerFactory.getLogger(ScheduledTask.class);
-    public static List<AppInfo> appInfoList = Collections.synchronizedList(new ArrayList<AppInfo>());
     @Autowired
     private RestUtil restUtil;
     @Autowired
@@ -73,12 +73,41 @@ public class ScheduledTask {
         }
     }
 
+    /**
+     * 1分钟后执行，每隔60秒执行, 单位：ms。
+     * 同步线程监控任务
+     */
+    @Scheduled(initialDelay = 60 * 1000L, fixedRate = 60 * 1000)
+    public void threadMonSchedule(){
+        try {
+            // 1. 获取本机标签
+            JSONObject paramsJson = new JSONObject();
+            paramsJson.put("hostname", commonConfig.getBindIp());
+            String tagsResult = restUtil.post(commonConfig.getServerUrl() + "/wgcloud/agent/tags", paramsJson);
+            if(StringUtils.isEmpty(tagsResult)){
+                logger.warn("Could not get tags for this agent, thread monitoring will be skipped.");
+                return;
+            }
+            JSONObject responseJson = JSONUtil.parseObj(tagsResult);
+            JSONArray dataArray = responseJson.getJSONArray("data");
+            List<String> agentTags = JSONUtil.toList(dataArray, String.class);
+            if(agentTags.isEmpty()){
+                return;
+            }
+
+            // 2. 执行同步逻辑
+            ThreadMonTask threadMonTask = new ThreadMonTask(agentTags, restUtil, commonConfig);
+            threadMonTask.syncThreadMonTasks();
+
+        } catch (Exception e) {
+            logger.error("Error in threadMonSchedule", e);
+        }
+    }
+
 
 //    核心上报
     @Scheduled(initialDelay = 59 * 1000L, fixedRate = 60 * 1000)
     public void minTask() {
-        List<AppInfo> APP_INFO_LIST_CP = new ArrayList<AppInfo>();
-        APP_INFO_LIST_CP.addAll(appInfoList);
         JSONObject jsonObject = new JSONObject();
         LogInfo logInfo = new LogInfo();
         Timestamp t = FormatUtil.getNowTime();
@@ -134,37 +163,41 @@ public class ScheduledTask {
             if (deskStateList != null) {
                 jsonObject.put("deskStateList", deskStateList);
             }
-            if (!APP_INFO_LIST_CP.isEmpty()) {
-                List<AppInfo> appInfoResList = new ArrayList<>();
-                List<AppState> appStateResList = new ArrayList<>();
-                for (AppInfo appInfo : APP_INFO_LIST_CP) {
-                    appInfo.setHostname(commonConfig.getBindIp());
-                    appInfo.setCreateTime(t);
-                    appInfo.setState("1");
-                    String pid = FormatUtil.getPidByFile(appInfo);
-                    if (StringUtils.isEmpty(pid)) {
-                        continue;
-                    }
-                    AppState appState = OshiUtil.getLoadPid(pid, os, hal.getMemory());
-                    if (appState != null) {
-                        appState.setCreateTime(t);
-                        appState.setAppInfoId(appInfo.getId());
-                        appInfo.setMemPer(appState.getMemPer());
-                        appInfo.setCpuPer(appState.getCpuPer());
-                        appInfoResList.add(appInfo);
-                        appStateResList.add(appState);
-                    }
-                }
-                jsonObject.put("appInfoList", appInfoResList);
-                jsonObject.put("appStateList", appStateResList);
-            }
+//            todo threadMon版本逻辑
+//            if (!APP_INFO_LIST_CP.isEmpty()) {
+//                List<AppInfo> appInfoResList = new ArrayList<>();
+//                List<AppState> appStateResList = new ArrayList<>();
+//                for (AppInfo appInfo : APP_INFO_LIST_CP) {
+//                    appInfo.setHostname(commonConfig.getBindIp());
+//                    appInfo.setCreateTime(t);
+//                    appInfo.setState("1");
+//                    String pid = FormatUtil.getPidByFile(appInfo);
+//                    if (StringUtils.isEmpty(pid)) {
+//                        continue;
+//                    }
+//                    AppState appState = OshiUtil.getLoadPid(pid, os, hal.getMemory());
+//                    if (appState != null) {
+//                        appState.setCreateTime(t);
+//                        appState.setAppInfoId(appInfo.getId());
+//                        appInfo.setMemPer(appState.getMemPer());
+//                        appInfo.setCpuPer(appState.getCpuPer());
+//                        appInfoResList.add(appInfo);
+//                        appStateResList.add(appState);
+//                    }
+//                }
+//                jsonObject.put("appInfoList", appInfoResList);
+//                jsonObject.put("appStateList", appStateResList);
+//            }
 
-            logger.debug("--------------- {}", jsonObject.toString());
+            logger.debug("--------------- {}\n", jsonObject.toString());
         } catch (Exception e) {
             logger.error(e.toString());
             logInfo.setInfoContent(e.toString());
         } finally {
-            logger.info("minTask {}", BatchData.LOG_INFO_LIST.size());
+            if(!BatchData.THREAD_STATE_LIST.isEmpty()){
+                jsonObject.put("threadStateList", BatchData.THREAD_STATE_LIST);
+                BatchData.THREAD_STATE_LIST.clear();
+            }
             if(!BatchData.LOG_INFO_LIST.isEmpty()){
                 jsonObject.put("logInfoList", BatchData.LOG_INFO_LIST);
                 BatchData.LOG_INFO_LIST.clear();
@@ -180,37 +213,6 @@ public class ScheduledTask {
         }
 
     }
-
-
-    /**
-     * 58秒后执行，每隔5分钟执行, 单位：ms。
-     * 获取监控进程
-     */
-    @Scheduled(initialDelay = 58 * 1000L, fixedRate = 300 * 1000)
-    public void appInfoListTask() {
-        try {
-            JSONObject paramsJson = new JSONObject();
-            paramsJson.put("hostname", commonConfig.getBindIp());
-            String resultJson = restUtil.post(commonConfig.getServerUrl() + "/wgcloud/appInfo/agentList", paramsJson);
-            if (resultJson != null) {
-                JSONArray resultArray = JSONUtil.parseArray(resultJson);
-                List<AppInfo> newAppInfoList = JSONUtil.toList(resultArray, AppInfo.class);
-                synchronized (appInfoList){
-                    appInfoList.clear();
-                    appInfoList.addAll(newAppInfoList);
-                }
-            }
-        } catch (Exception e) {
-            logger.error("获取监控进程列表错误",e);
-            LogInfo logInfo = new LogInfo();
-            Timestamp t = FormatUtil.getNowTime();
-            logInfo.setHostname(commonConfig.getBindIp() + "：Agent获取进程列表错误");
-            logInfo.setCreateTime(t);
-            logInfo.setInfoContent(e.toString());
-            BatchData.LOG_INFO_LIST.add(logInfo);
-        }
-    }
-
 
     /**
      * 20秒后执行，每隔1分钟执行, 单位：ms。

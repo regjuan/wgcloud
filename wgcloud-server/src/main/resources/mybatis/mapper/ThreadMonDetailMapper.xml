@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wgcloud.mapper.ThreadMonDetailMapper">
+    <resultMap id="resultMap" type="com.wgcloud.entity.ThreadMonDetail">
+        <id column="ID" property="id" jdbcType="CHAR" />
+        <result column="THREAD_MON_ID" property="threadMonId" jdbcType="CHAR" />
+        <result column="HOSTNAME" property="hostname" jdbcType="VARCHAR" />
+        <result column="PROCESS_KEYWORD" property="processKeyword" jdbcType="VARCHAR" />
+        <result column="STATUS" property="status" jdbcType="VARCHAR" />
+        <result column="LAST_HEARTBEAT" property="lastHeartbeat" jdbcType="TIMESTAMP" />
+        <result column="CREATE_TIME" property="createTime" jdbcType="TIMESTAMP" />
+    </resultMap>
+
+    <sql id="tableColumnList">
+        ID,THREAD_MON_ID,HOSTNAME,PROCESS_KEYWORD,STATUS,LAST_HEARTBEAT,CREATE_TIME
+    </sql>
+
+    <select id="selectByParams" parameterType="map" resultMap="resultMap">
+        SELECT
+        <include refid="tableColumnList" />
+        FROM THREAD_MON_DETAIL
+        <where>
+            <if test="threadMonId != null">
+                <![CDATA[ AND THREAD_MON_ID = #{threadMonId} ]]>
+            </if>
+            <if test="hostname != null">
+                <![CDATA[ AND HOSTNAME = #{hostname} ]]>
+            </if>
+             <if test="status != null">
+                <![CDATA[ AND STATUS = #{status} ]]>
+            </if>
+        </where>
+    </select>
+
+    <delete id="deleteByThreadMonId" parameterType="java.lang.String">
+        DELETE FROM THREAD_MON_DETAIL WHERE THREAD_MON_ID = #{threadMonId}
+    </delete>
+
+    <delete id="deleteById" parameterType="java.lang.String">
+        DELETE FROM THREAD_MON_DETAIL WHERE ID IN
+        <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <insert id="save" parameterType="com.wgcloud.entity.ThreadMonDetail">
+        INSERT INTO THREAD_MON_DETAIL (ID, THREAD_MON_ID, HOSTNAME, PROCESS_KEYWORD, STATUS, LAST_HEARTBEAT, CREATE_TIME)
+        VALUES (#{id}, #{threadMonId}, #{hostname}, #{processKeyword}, #{status}, #{lastHeartbeat}, #{createTime})
+    </insert>
+
+    <insert id="insertList" parameterType="java.util.List">
+        INSERT INTO THREAD_MON_DETAIL (ID, THREAD_MON_ID, HOSTNAME, PROCESS_KEYWORD, STATUS, LAST_HEARTBEAT, CREATE_TIME) VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.id},#{item.threadMonId},#{item.hostname},#{item.processKeyword},#{item.status},#{item.lastHeartbeat},#{item.createTime})
+        </foreach>
+    </insert>
+
+    <update id="updateByHostAndMonId" parameterType="com.wgcloud.entity.ThreadMonDetail">
+        UPDATE THREAD_MON_DETAIL
+        <set>
+            <if test="status != null">STATUS = #{status},</if>
+            <if test="lastHeartbeat != null">LAST_HEARTBEAT = #{lastHeartbeat},</if>
+        </set>
+        WHERE HOSTNAME = #{hostname} AND THREAD_MON_ID = #{threadMonId}
+    </update>
+
+</mapper>

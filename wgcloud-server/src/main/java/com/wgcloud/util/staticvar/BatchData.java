@@ -22,11 +22,12 @@ public class BatchData {
 
 
     //进程信息
-    public static List<AppInfo> APP_INFO_LIST = Collections.synchronizedList(new ArrayList<AppInfo>());
+//    public static List<AppInfo> APP_INFO_LIST = Collections.synchronizedList(new ArrayList<AppInfo>());
 
 
     //进程状态
-    public static List<AppState> APP_STATE_LIST = Collections.synchronizedList(new ArrayList<AppState>());
+//    public static List<AppState> APP_STATE_LIST = Collections.synchronizedList(new ArrayList<AppState>());
+    public static List<ThreadState> THREAD_STATE_LIST = Collections.synchronizedList(new ArrayList<ThreadState>());
 
     //cpu监控
     public static List<CpuState> CPU_STATE_LIST = Collections.synchronizedList(new ArrayList<CpuState>());
@@ -49,6 +50,8 @@ public class BatchData {
 
     //日志信息
     public static List<LogInfo> LOG_INFO_LIST = Collections.synchronizedList(new ArrayList<LogInfo>());
+
+
 
 
     // 入侵检测信息

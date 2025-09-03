@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wgcloud.mapper.ThreadMonMapper">
+    <resultMap id="resultMap" type="com.wgcloud.entity.ThreadMon">
+        <id column="ID" property="id" jdbcType="CHAR" />
+        <result column="TASK_NAME" property="taskName" jdbcType="CHAR" />
+        <result column="PROCESS_KEYWORD" property="processKeyword" jdbcType="CHAR" />
+        <result column="ALERT_RULES" property="alertRules" jdbcType="CHAR" />
+        <result column="ACTIVE" property="active" jdbcType="CHAR" />
+        <result column="TARGET_TAGS" property="targetTags" jdbcType="CHAR" />
+        <result column="CREATE_TIME" property="createTime" jdbcType="TIMESTAMP" />
+    </resultMap>
+
+    <sql id="tableColumnList">
+        ID,TASK_NAME,PROCESS_KEYWORD,ALERT_RULES,ACTIVE,TARGET_TAGS,CREATE_TIME
+    </sql>
+
+    <sql id="queryByParams">
+        <if test="taskName != null and taskName != ''">
+            <![CDATA[ AND TASK_NAME LIKE CONCAT('%',#{taskName},'%')]]>
+        </if>
+        <if test="active != null and active != ''">
+            AND ACTIVE = #{active}
+        </if>
+        <if test="tags != null">
+            AND
+            <foreach collection="tags" item="item" index="index" open="(" separator="OR" close=")">
+                TARGET_TAGS LIKE CONCAT('%"',#{item},'"%')
+            </foreach>
+        </if>
+    </sql>
+
+    <select id="selectById" resultMap="resultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="tableColumnList" />
+        FROM THREAD_MON WHERE ID=#{id}
+    </select>
+
+    <delete id="deleteById" parameterType="java.lang.String">
+        DELETE FROM THREAD_MON WHERE ID IN
+        <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <insert id="save" parameterType="com.wgcloud.entity.ThreadMon">
+        INSERT INTO THREAD_MON
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">ID,</if>
+            <if test="taskName != null">TASK_NAME,</if>
+            <if test="processKeyword != null">PROCESS_KEYWORD,</if>
+            <if test="alertRules != null">ALERT_RULES,</if>
+            <if test="active != null">ACTIVE,</if>
+            <if test="targetTags != null">TARGET_TAGS,</if>
+            <if test="createTime != null">CREATE_TIME</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="taskName != null">#{taskName},</if>
+            <if test="processKeyword != null">#{processKeyword},</if>
+            <if test="alertRules != null">#{alertRules},</if>
+            <if test="active != null">#{active},</if>
+            <if test="targetTags != null">#{targetTags},</if>
+            <if test="createTime != null">#{createTime}</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.wgcloud.entity.ThreadMon">
+        UPDATE THREAD_MON
+        <set>
+            <if test="taskName != null">TASK_NAME=#{taskName},</if>
+            <if test="processKeyword != null">PROCESS_KEYWORD=#{processKeyword},</if>
+            <if test="alertRules != null">ALERT_RULES=#{alertRules},</if>
+            <if test="active != null">ACTIVE=#{active},</if>
+            <if test="targetTags != null">TARGET_TAGS=#{targetTags},</if>
+        </set>
+        WHERE ID=#{id}
+    </update>
+
+    <select id="countByParams" parameterType="map" resultType="java.lang.Integer">
+        SELECT count(*) FROM THREAD_MON
+        <where>
+            <include refid="queryByParams" />
+        </where>
+    </select>
+
+    <select id="selectByParams" parameterType="map" resultMap="resultMap">
+        SELECT
+        <include refid="tableColumnList" />
+        FROM THREAD_MON
+        <where>
+            <include refid="queryByParams" />
+        </where>
+        ORDER BY CREATE_TIME DESC
+    </select>
+
+</mapper>

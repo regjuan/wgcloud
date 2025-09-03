@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wgcloud.mapper.ThreadStateMapper">
+    <resultMap id="resultMap" type="com.wgcloud.entity.ThreadState">
+        <id column="ID" property="id" jdbcType="CHAR" />
+        <result column="THREAD_MON_ID" property="threadMonId" jdbcType="CHAR" />
+        <result column="TOTAL_THREADS" property="totalThreads" jdbcType="INTEGER" />
+        <result column="RUNNABLE_THREADS" property="runnableThreads" jdbcType="INTEGER" />
+        <result column="BLOCKED_THREADS" property="blockedThreads" jdbcType="INTEGER" />
+        <result column="WAITING_THREADS" property="waitingThreads" jdbcType="INTEGER" />
+        <result column="TIMED_WAITING_THREADS" property="timedWaitingThreads" jdbcType="INTEGER" />
+        <result column="CREATE_TIME" property="createTime" jdbcType="TIMESTAMP" />
+    </resultMap>
+
+    <sql id="tableColumnList">
+        ID,THREAD_MON_ID,TOTAL_THREADS,RUNNABLE_THREADS,BLOCKED_THREADS,WAITING_THREADS,TIMED_WAITING_THREADS,CREATE_TIME
+    </sql>
+
+    <select id="selectById" resultMap="resultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="tableColumnList" />
+        FROM THREAD_STATE
+        WHERE ID=#{id}
+    </select>
+
+    <delete id="deleteByThreadMonId" parameterType="java.lang.String">
+        DELETE FROM THREAD_STATE WHERE THREAD_MON_ID = #{threadMonId}
+    </delete>
+
+    <delete id="deleteByDate" parameterType="map">
+        DELETE FROM THREAD_STATE WHERE <![CDATA[ CREATE_TIME <= #{endTime} ]]>
+    </delete>
+
+    <delete id="deleteById" parameterType="java.lang.String">
+        DELETE FROM THREAD_STATE WHERE ID IN
+        <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <insert id="save" parameterType="com.wgcloud.entity.ThreadState">
+        INSERT INTO THREAD_STATE
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">ID,</if>
+            <if test="threadMonId != null">THREAD_MON_ID,</if>
+            <if test="totalThreads != null">TOTAL_THREADS,</if>
+            <if test="runnableThreads != null">RUNNABLE_THREADS,</if>
+            <if test="blockedThreads != null">BLOCKED_THREADS,</if>
+            <if test="waitingThreads != null">WAITING_THREADS,</if>
+            <if test="timedWaitingThreads != null">TIMED_WAITING_THREADS,</if>
+            <if test="createTime != null">CREATE_TIME</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="threadMonId != null">#{threadMonId},</if>
+            <if test="totalThreads != null">#{totalThreads},</if>
+            <if test="runnableThreads != null">#{runnableThreads},</if>
+            <if test="blockedThreads != null">#{blockedThreads},</if>
+            <if test="waitingThreads != null">#{waitingThreads},</if>
+            <if test="timedWaitingThreads != null">#{timedWaitingThreads},</if>
+            <if test="createTime != null">#{createTime}</if>
+        </trim>
+    </insert>
+
+    <insert id="insertList" parameterType="java.util.List">
+        INSERT INTO THREAD_STATE (ID, THREAD_MON_ID, TOTAL_THREADS, RUNNABLE_THREADS, BLOCKED_THREADS, WAITING_THREADS, TIMED_WAITING_THREADS, CREATE_TIME) VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.id},#{item.threadMonId},#{item.hostname},#{item.totalThreads},#{item.runnableThreads},#{item.blockedThreads},#{item.waitingThreads},#{item.timedWaitingThreads},#{item.createTime})
+        </foreach>
+    </insert>
+
+    <select id="selectAllByParams" parameterType="map" resultMap="resultMap">
+        SELECT
+        <include refid="tableColumnList" />
+        FROM THREAD_STATE t
+        <where>
+            <if test="hostname != null">
+                <![CDATA[ AND HOSTNAME = #{hostname} ]]>
+            </if>
+            <if test="threadMonId != null">
+                <![CDATA[ AND THREAD_MON_ID = #{threadMonId} ]]>
+            </if>
+            <if test="startTime != null and endTime !=null and startTime !='' and endTime != '' ">
+                <![CDATA[ AND CREATE_TIME >= #{startTime} and CREATE_TIME <=#{endTime}]]>
+            </if>
+        </where>
+        ORDER BY CREATE_TIME ASC
+    </select>
+
+    <select id="selectByParams" parameterType="map" resultMap="resultMap">
+        SELECT
+        <include refid="tableColumnList" />
+        FROM THREAD_STATE
+        <where>
+            <if test="hostname != null">
+                <![CDATA[ AND HOSTNAME = #{hostname} ]]>
+            </if>
+            <if test="threadMonId != null">
+                <![CDATA[ AND THREAD_MON_ID = #{threadMonId} ]]>
+            </if>
+            <if test="startTime != null and endTime !=null and startTime !='' and endTime != '' ">
+                <![CDATA[ AND CREATE_TIME >= #{startTime} and CREATE_TIME <=#{endTime}]]>
+            </if>
+        </where>
+        ORDER BY CREATE_TIME DESC
+    </select>
+
+</mapper>

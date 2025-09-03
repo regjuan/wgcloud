@@ -210,56 +210,50 @@ public class WarnMailUtil {
         return false;
     }
 
-    /**
-     * 进程下线发送告警邮件
-     *
-     * @param AppInfo 进程信息
-     * @param isDown  是否是下线告警，true下线告警，false上线恢复
-     * @return
-     */
-    public static boolean sendAppDown(AppInfo appInfo, boolean isDown) {
-        if (StaticKeys.mailSet == null) {
-            return false;
-        }
-        MailSet mailSet = StaticKeys.mailSet;
-        if (StaticKeys.NO_SEND_WARN.equals(mailConfig.getAllWarnMail()) || StaticKeys.NO_SEND_WARN.equals(mailConfig.getAppDownWarnMail())) {
-            return false;
-        }
-        String key = appInfo.getId();
-        if (isDown) {
-            if (!StringUtils.isEmpty(WarnPools.MEM_WARN_MAP.get(key))) {
-                return false;
-            }
-            try {
-                String title = "进程下线告警：" + appInfo.getHostname() + "，" + appInfo.getAppName();
-                String commContent = "进程已经超过10分钟未上报数据，可能已经下线：" + appInfo.getHostname() + "，" + appInfo.getAppName()
-                        + "。如果不再监控该进程在列表删除即可，同时不会再收到该进程告警邮件";
-                //发送邮件
-                sendMail(mailSet.getToMail(), title, commContent);
-                //标记已发送过告警信息
-                WarnPools.MEM_WARN_MAP.put(key, "1");
-                //记录发送信息
-                logInfoService.save(title, commContent, StaticKeys.LOG_ERROR);
-            } catch (Exception e) {
-                logger.error("发送进程下线告警邮件失败：", e);
-                logInfoService.save("发送进程下线告警错误", e.toString(), StaticKeys.LOG_ERROR);
-            }
-        } else {
-            WarnPools.MEM_WARN_MAP.remove(key);
-            try {
-                String title = "进程恢复上线通知：" + appInfo.getHostname() + "，" + appInfo.getAppName();
-                String commContent = "进程恢复上线通知：" + appInfo.getHostname() + "，" + appInfo.getAppName();
-                //发送邮件
-                sendMail(mailSet.getToMail(), title, commContent);
-                //记录发送信息
-                logInfoService.save(title, commContent, StaticKeys.LOG_ERROR);
-            } catch (Exception e) {
-                logger.error("发送进程恢复上线通知邮件失败：", e);
-                logInfoService.save("发送进程恢复上线通知错误", e.toString(), StaticKeys.LOG_ERROR);
-            }
-        }
-        return false;
-    }
+
+//    public static boolean sendAppDown(AppInfo appInfo, boolean isDown) {
+//        if (StaticKeys.mailSet == null) {
+//            return false;
+//        }
+//        MailSet mailSet = StaticKeys.mailSet;
+//        if (StaticKeys.NO_SEND_WARN.equals(mailConfig.getAllWarnMail()) || StaticKeys.NO_SEND_WARN.equals(mailConfig.getAppDownWarnMail())) {
+//            return false;
+//        }
+//        String key = appInfo.getId();
+//        if (isDown) {
+//            if (!StringUtils.isEmpty(WarnPools.MEM_WARN_MAP.get(key))) {
+//                return false;
+//            }
+//            try {
+//                String title = "进程下线告警：" + appInfo.getHostname() + "，" + appInfo.getAppName();
+//                String commContent = "进程已经超过10分钟未上报数据，可能已经下线：" + appInfo.getHostname() + "，" + appInfo.getAppName()
+//                        + "。如果不再监控该进程在列表删除即可，同时不会再收到该进程告警邮件";
+//                //发送邮件
+//                sendMail(mailSet.getToMail(), title, commContent);
+//                //标记已发送过告警信息
+//                WarnPools.MEM_WARN_MAP.put(key, "1");
+//                //记录发送信息
+//                logInfoService.save(title, commContent, StaticKeys.LOG_ERROR);
+//            } catch (Exception e) {
+//                logger.error("发送进程下线告警邮件失败：", e);
+//                logInfoService.save("发送进程下线告警错误", e.toString(), StaticKeys.LOG_ERROR);
+//            }
+//        } else {
+//            WarnPools.MEM_WARN_MAP.remove(key);
+//            try {
+//                String title = "进程恢复上线通知：" + appInfo.getHostname() + "，" + appInfo.getAppName();
+//                String commContent = "进程恢复上线通知：" + appInfo.getHostname() + "，" + appInfo.getAppName();
+//                //发送邮件
+//                sendMail(mailSet.getToMail(), title, commContent);
+//                //记录发送信息
+//                logInfoService.save(title, commContent, StaticKeys.LOG_ERROR);
+//            } catch (Exception e) {
+//                logger.error("发送进程恢复上线通知邮件失败：", e);
+//                logInfoService.save("发送进程恢复上线通知错误", e.toString(), StaticKeys.LOG_ERROR);
+//            }
+//        }
+//        return false;
+//    }
 
     public static String sendMail(String mails, String mailTitle, String mailContent) {
         try {

@@ -3,6 +3,7 @@ package com.wgcloud.task;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.cron.pattern.CronPattern;
+import com.github.pagehelper.PageInfo;
 import com.wgcloud.config.CommonConfig;
 import com.wgcloud.entity.*;
 import com.wgcloud.mapper.*;
@@ -21,6 +22,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import com.wgcloud.service.ThreadMonService;
+import com.wgcloud.service.ThreadMonDetailService;
+import com.wgcloud.service.ThreadStateService;
+import com.wgcloud.entity.ThreadMon;
+import com.wgcloud.entity.ThreadMonDetail;
+import com.wgcloud.entity.ThreadState;
+import java.util.stream.Collectors;
 
 import java.util.*;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -53,8 +61,7 @@ public class ScheduledTask {
     LogInfoService logInfoService;
     @Autowired
     AlarmInfoService alarmInfoService;
-    @Autowired
-    AppInfoService appInfoService;
+
     @Autowired
     CpuStateService cpuStateService;
     @Autowired
@@ -65,14 +72,12 @@ public class ScheduledTask {
     SysLoadStateService sysLoadStateService;
     @Autowired
     TcpStateService tcpStateService;
-    @Autowired
-    AppStateService appStateService;
+
     @Autowired
     MailSetService mailSetService;
     @Autowired
     IntrusionInfoService intrusionInfoService;
-    @Autowired
-    HostInfoService hostInfoService;
+    
     @Autowired
     DbInfoService dbInfoService;
     @Autowired
@@ -88,8 +93,6 @@ public class ScheduledTask {
     @Autowired
     CommonConfig commonConfig;
     @Autowired
-    SystemInfoMapper systemInfoMapper;
-    @Autowired
     CpuStateMapper cpuStateMapper;
     @Autowired
     DeskStateMapper deskStateMapper;
@@ -101,10 +104,6 @@ public class ScheduledTask {
     SysLoadStateMapper sysLoadStateMapper;
     @Autowired
     TcpStateMapper tcpStateMapper;
-    @Autowired
-    AppInfoMapper appInfoMapper;
-    @Autowired
-    AppStateMapper appStateMapper;
     @Autowired
     MailSetMapper mailSetMapper;
     @Autowired
@@ -118,6 +117,16 @@ public class ScheduledTask {
     private CommandRunService commandRunService;
     @Autowired
     private CommandResultService commandResultService;
+
+    @Autowired
+    private ThreadMonService threadMonService;
+    @Autowired
+    private ThreadMonDetailService threadMonDetailService;
+    @Autowired
+    private ThreadStateService threadStateService;
+    @Autowired
+    private SystemInfoMapper systemInfoMapper;
+
     /**
      * 20秒后执行
      * 初始化操作
@@ -189,48 +198,52 @@ public class ScheduledTask {
         }
 
         try {
-            Map<String, Object> params = new HashMap<String, Object>();
-            List<AppInfo> list = appInfoService.selectAllByParams(params);
-            if (!CollectionUtil.isEmpty(list)) {
-                List<AppInfo> updateList = new ArrayList<AppInfo>();
-                for (AppInfo appInfo : list) {
-                    Date createTime = appInfo.getCreateTime();
-                    long diff = date.getTime() - createTime.getTime();
-                    if (diff > delayTime) {
-                        if (!StringUtils.isEmpty(WarnPools.MEM_WARN_MAP.get(appInfo.getId()))) {
+            Map<String, Object> params = new HashMap<>();
+            params.put("active", "1");
+            List<ThreadMon> threadMonList = threadMonService.selectAllByParams(params);
+            if (!threadMonList.isEmpty()) {
+                List<String> activeMonIds = threadMonList.stream().map(ThreadMon::getId).collect(Collectors.toList());
+                params.clear();
+                params.put("threadMonIds", activeMonIds);
+                List<ThreadMonDetail> detailList = threadMonDetailService.selectByParams(params);
+                Date checkTime = DateUtil.getDate(DateUtil.getDateBefore(-15, DateUtil.TimeUnit.MINUTE)) ;
+                for (ThreadMonDetail detail : detailList) {
+                    Date lastUpdate = detail.getCreateTime();
+                    params.clear();
+                    params.put("threadMonDetailId", detail.getId());
+                    List<ThreadState>  states= threadStateService.selectByParams(params);
+                    if (!states.isEmpty()) {
+                        states.sort(Comparator.comparing(ThreadState::getCreateTime).reversed());
+                        lastUpdate = states.get(0).getCreateTime();
+                    }
+                    if (lastUpdate.before(checkTime)) {
+                        if (!StringUtils.isEmpty(WarnPools.MEM_WARN_MAP.get(detail.getId()))) {
                             continue;
                         }
-                        appInfo.setState(StaticKeys.DOWN_STATE);
-                        AlarmInfo alarmInfo = new AlarmInfo();
-                        alarmInfo.setHostname(appInfo.getHostname());
-                        alarmInfo.setLogTitle("进程下线");
-                        alarmInfo.setInfoContent("进程「" + appInfo.getAppName() + "」在主机「" + appInfo.getHostname() + "」上超过10分钟未上报状态，可能已下线");
-                        alarmInfo.setSource("hostDownCheckTask");
-                        alarmInfo.setState(StaticKeys.LOG_ERROR);
+                        SystemInfo hostInfo = systemInfoMapper.selectById(detail.getHostname());
+                        AlarmInfo alarmInfo = getAlarmInfo(detail, hostInfo);
                         alarmInfoService.save(alarmInfo);
-                        updateList.add(appInfo);
-                        Runnable runnable = () -> {
-                            WarnMailUtil.sendAppDown(appInfo, true);
-                        };
-                        executor.execute(runnable);
-                    } else {
-                        if (!StringUtils.isEmpty(WarnPools.MEM_WARN_MAP.get(appInfo.getId()))) {
-                            Runnable runnable = () -> {
-                                WarnMailUtil.sendAppDown(appInfo, false);
-                            };
-                            executor.execute(runnable);
-                        }
+                        WarnPools.MEM_WARN_MAP.put(detail.getId(), "1");
                     }
-                }
-                if (updateList.size() > 0) {
-                    appInfoService.updateRecord(updateList);
                 }
             }
         } catch (Exception e) {
-            logger.error("检测进程是否下线错误", e);
+            logger.error("检测进程监控实例是否下线错误", e);
         }
 
 
+    }
+
+    private static AlarmInfo getAlarmInfo(ThreadMonDetail detail, SystemInfo hostInfo) {
+        String hostname = hostInfo != null ? hostInfo.getHostname() : detail.getHostname();
+        String alarmContent = "进程监控实例 " + detail.getProcessKeyword() + " 在主机 [" + hostname + "] 上已失联超过15分钟。";
+        AlarmInfo alarmInfo = new AlarmInfo();
+        alarmInfo.setHostname(detail.getHostname());
+        alarmInfo.setLogTitle("进程监控失联");
+        alarmInfo.setInfoContent(alarmContent);
+        alarmInfo.setSource("checkThreadMonDetailOffline");
+        alarmInfo.setState(StaticKeys.LOG_ERROR);
+        return alarmInfo;
     }
 
 
@@ -352,12 +365,21 @@ public class ScheduledTask {
     public synchronized void commitTask() {
         logger.info("批量提交监控数据任务开始----------" + DateUtil.getCurrentDateTime());
         try {
-            if (BatchData.APP_STATE_LIST.size() > 0) {
-                List<AppState> APP_STATE_LIST = new ArrayList<AppState>();
-                APP_STATE_LIST.addAll(BatchData.APP_STATE_LIST);
-                BatchData.APP_STATE_LIST.clear();
-                appStateService.saveRecord(APP_STATE_LIST);
+            if (BatchData.THREAD_STATE_LIST.size() > 0) {
+                List<ThreadState> THREAD_STATE_LIST = new ArrayList<>();
+                THREAD_STATE_LIST.addAll(BatchData.THREAD_STATE_LIST);
+                BatchData.THREAD_STATE_LIST.clear();
+                threadStateService.saveRecord(THREAD_STATE_LIST);
+                for (ThreadState threadState : THREAD_STATE_LIST) {
+                    ThreadMonDetail detail = new ThreadMonDetail();
+                    detail.setHostname(threadState.getHostname());
+                    detail.setThreadMonId(threadState.getThreadMonId());
+                    detail.setStatus("RUNNING");
+                    detail.setLastHeartbeat(new Date());
+                    threadMonDetailService.updateByHostAndMonId(detail);
+                }
             }
+
             if (BatchData.CPU_STATE_LIST.size() > 0) {
                 List<CpuState> CPU_STATE_LIST = new ArrayList<CpuState>();
                 CPU_STATE_LIST.addAll(BatchData.CPU_STATE_LIST);
@@ -431,32 +453,33 @@ public class ScheduledTask {
                 systemInfoService.updateRecord(updateList);
                 systemInfoService.saveRecord(insertList);
             }
-            if (BatchData.APP_INFO_LIST.size() > 0) {
-                Map<String, Object> paramsDel = new HashMap<String, Object>();
-                List<AppInfo> APP_INFO_LIST = new ArrayList<AppInfo>();
-                APP_INFO_LIST.addAll(BatchData.APP_INFO_LIST);
-                BatchData.APP_INFO_LIST.clear();
-
-                List<AppInfo> updateList = new ArrayList<AppInfo>();
-                List<AppInfo> insertList = new ArrayList<AppInfo>();
-                List<AppInfo> savedList = appInfoService.selectAllByParams(paramsDel);
-                for (AppInfo systemInfo : APP_INFO_LIST) {
-                    boolean issaved = false;
-                    for (AppInfo systemInfoS : savedList) {
-                        if (systemInfoS.getHostname().equals(systemInfo.getHostname()) && systemInfoS.getAppPid().equals(systemInfo.getAppPid())) {
-                            systemInfo.setId(systemInfoS.getId());
-                            updateList.add(systemInfo);
-                            issaved = true;
-                            break;
-                        }
-                    }
-                    if (!issaved) {
-                        insertList.add(systemInfo);
-                    }
-                }
-                appInfoService.updateRecord(updateList);
-                appInfoService.saveRecord(insertList);
-            }
+//            todo threadMon 逻辑逻辑下的 信息入库
+//            if (BatchData.APP_INFO_LIST.size() > 0) {
+//                Map<String, Object> paramsDel = new HashMap<String, Object>();
+//                List<AppInfo> APP_INFO_LIST = new ArrayList<AppInfo>();
+//                APP_INFO_LIST.addAll(BatchData.APP_INFO_LIST);
+//                BatchData.APP_INFO_LIST.clear();
+//
+//                List<AppInfo> updateList = new ArrayList<AppInfo>();
+//                List<AppInfo> insertList = new ArrayList<AppInfo>();
+//                List<AppInfo> savedList = appInfoService.selectAllByParams(paramsDel);
+//                for (AppInfo systemInfo : APP_INFO_LIST) {
+//                    boolean issaved = false;
+//                    for (AppInfo systemInfoS : savedList) {
+//                        if (systemInfoS.getHostname().equals(systemInfo.getHostname()) && systemInfoS.getAppPid().equals(systemInfo.getAppPid())) {
+//                            systemInfo.setId(systemInfoS.getId());
+//                            updateList.add(systemInfo);
+//                            issaved = true;
+//                            break;
+//                        }
+//                    }
+//                    if (!issaved) {
+//                        insertList.add(systemInfo);
+//                    }
+//                }
+//                appInfoService.updateRecord(updateList);
+//                appInfoService.saveRecord(insertList);
+//            }
         } catch (Exception e) {
             // TODO Auto-generated catch block
             logger.error("批量提交监控数据错误----------", e);
@@ -492,7 +515,8 @@ public class ScheduledTask {
                 netIoStateMapper.deleteByAccountAndDate(paramsDel);//删除吞吐率监控信息
                 sysLoadStateMapper.deleteByAccountAndDate(paramsDel);//删除负载状态监控信息
                 tcpStateMapper.deleteByAccountAndDate(paramsDel);//删除tcp监控信息
-                appStateMapper.deleteByDate(paramsDel);
+//            todo threadMon 逻辑逻辑下的信息清理
+//                appStateMapper.deleteByDate(paramsDel);
                 //删除15天前的日志信息
                 logInfoMapper.deleteByDate(paramsDel);
                 //删除15天前数据库表统计信息

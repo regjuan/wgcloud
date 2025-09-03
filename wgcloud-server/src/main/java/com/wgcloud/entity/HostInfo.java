@@ -9,7 +9,11 @@ import java.util.Date;
  * @date: 2019年11月16日
  * @Description: host的IP密码等信息，暂未用
  * @Copyright: 2017-2024 wgcloud. All rights reserved.
+ *
+ *
  */
+// 使用SystemInfo
+@Deprecated
 public class HostInfo extends BaseEntity {
 
 

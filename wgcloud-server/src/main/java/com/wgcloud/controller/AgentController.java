@@ -68,14 +68,23 @@ public class AgentController {
         JSONObject cpuState = agentJsonObject.getJSONObject("cpuState");
         JSONObject memState = agentJsonObject.getJSONObject("memState");
         JSONObject sysLoadState = agentJsonObject.getJSONObject("sysLoadState");
-        JSONArray appInfoList = agentJsonObject.getJSONArray("appInfoList");
-        JSONArray appStateList = agentJsonObject.getJSONArray("appStateList");
+//            todo threadMon逻辑下的线程告警
+//        JSONArray appInfoList = agentJsonObject.getJSONArray("appInfoList");
+//        JSONArray appStateList = agentJsonObject.getJSONArray("appStateList");
         JSONArray logInfoList = agentJsonObject.getJSONArray("logInfoList");
         JSONObject systemInfo = agentJsonObject.getJSONObject("systemInfo");
         JSONObject netIoState = agentJsonObject.getJSONObject("netIoState");
         JSONArray deskStateList = agentJsonObject.getJSONArray("deskStateList");
+        JSONArray threadStateList = agentJsonObject.getJSONArray("threadStateList");
 
         try {
+
+            if (threadStateList != null) {
+                List<ThreadState> threadStates = JSONUtil.toList(threadStateList, ThreadState.class);
+                for (ThreadState threadState : threadStates) {
+                    BatchData.THREAD_STATE_LIST.add(threadState);
+                }
+            }
 
             if (logInfoList != null) {
                 List<LogInfo> logInfos = JSONUtil.toList(logInfoList, LogInfo.class);
@@ -123,16 +132,17 @@ public class AgentController {
                 BeanUtil.copyProperties(netIoState, bean);
                 BatchData.NETIO_STATE_LIST.add(bean);
             }
-            if (appInfoList != null && appStateList != null) {
-                List<AppInfo> appInfoResList = JSONUtil.toList(appInfoList, AppInfo.class);
-                for (AppInfo appInfo : appInfoResList) {
-                    BatchData.APP_INFO_LIST.add(appInfo);
-                }
-                List<AppState> appStateResList = JSONUtil.toList(appStateList, AppState.class);
-                for (AppState appState : appStateResList) {
-                    BatchData.APP_STATE_LIST.add(appState);
-                }
-            }
+//            todo threadMon逻辑下的线程告警
+//            if (appInfoList != null && appStateList != null) {
+//                List<AppInfo> appInfoResList = JSONUtil.toList(appInfoList, AppInfo.class);
+//                for (AppInfo appInfo : appInfoResList) {
+//                    BatchData.APP_INFO_LIST.add(appInfo);
+//                }
+//                List<AppState> appStateResList = JSONUtil.toList(appStateList, AppState.class);
+//                for (AppState appState : appStateResList) {
+//                    BatchData.APP_STATE_LIST.add(appState);
+//                }
+//            }
             if (systemInfo != null) {
                 SystemInfo bean = new SystemInfo();
                 BeanUtil.copyProperties(systemInfo, bean);

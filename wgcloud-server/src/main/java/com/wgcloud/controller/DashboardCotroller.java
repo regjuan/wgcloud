@@ -60,8 +60,6 @@ public class DashboardCotroller {
     @Resource
     MailSetService mailSetService;
     @Resource
-    AppInfoService appInfoService;
-    @Resource
     private LogInfoService logInfoService;
     @Autowired
     HeathMonitorService heathMonitorService;
@@ -85,108 +83,106 @@ public class DashboardCotroller {
         Map<String, Object> params = new HashMap<String, Object>();
         List<ChartInfo> chartInfoList = new ArrayList<ChartInfo>();
         try {
-            int totalSystemInfoSize = systemInfoService.countByParams(params);
-            data.put("totalSystemInfoSize", totalSystemInfoSize);
-            int totalSizeApp = appInfoService.countByParams(params);
-            data.put("totalSizeApp", totalSizeApp);
-
-            params.put("memPer", 90);
-            int memPerSize_90 = systemInfoService.countByParams(params);
-            double a = 0;
-            if (totalSystemInfoSize != 0) {
-                a = (double) memPerSize_90 / totalSystemInfoSize;
-            }
-            ChartInfo memPerSize_90_chart = new ChartInfo();
-            memPerSize_90_chart.setItem("内存>90%");
-            memPerSize_90_chart.setCount(memPerSize_90);
-            memPerSize_90_chart.setPercent(FormatUtil.formatDouble(a, 2));
-            chartInfoList.add(memPerSize_90_chart);
-
-            params.put("memPer", 50);
-            params.put("memPerLe", 90);
-            int memPerSize_50_90 = systemInfoService.countByParams(params);
-            double b = 0;
-            if (totalSystemInfoSize != 0) {
-                b = (double) memPerSize_50_90 / totalSystemInfoSize;
-            }
-            ChartInfo memPerSize_50_90_chart = new ChartInfo();
-            memPerSize_50_90_chart.setItem("内存>50%且<90%");
-            memPerSize_50_90_chart.setCount(memPerSize_50_90);
-            memPerSize_50_90_chart.setPercent(FormatUtil.formatDouble(b, 2));
-            chartInfoList.add(memPerSize_50_90_chart);
-            params.clear();
-
-            params.put("cpuPer", 90);
-            int cpuPerSize_90 = systemInfoService.countByParams(params);
-            double c = 0;
-            if (totalSystemInfoSize != 0) {
-                c = (double) cpuPerSize_90 / totalSystemInfoSize;
-            }
-            ChartInfo cpuPerSize_90_chart = new ChartInfo();
-            cpuPerSize_90_chart.setItem("CPU>90%");
-            cpuPerSize_90_chart.setCount(cpuPerSize_90);
-            cpuPerSize_90_chart.setPercent(FormatUtil.formatDouble(c, 2));
-            chartInfoList.add(cpuPerSize_90_chart);
-            params.clear();
-
-            params.put("cpuPer", 90);
-            params.put("memPer", 90);
-            int perSize_90_90 = systemInfoService.countByParams(params);
-            double d = 0;
-            if (totalSystemInfoSize != 0) {
-                d = (double) perSize_90_90 / totalSystemInfoSize;
-            }
-            ChartInfo perSize_90_90_chart = new ChartInfo();
-            perSize_90_90_chart.setItem("CPU和内存>90%");
-            perSize_90_90_chart.setCount(perSize_90_90);
-            perSize_90_90_chart.setPercent(FormatUtil.formatDouble(d, 2));
-            chartInfoList.add(perSize_90_90_chart);
-            params.clear();
-
-            params.put("memPerLe", 50);
-            params.put("cpuPerLe", 50);
-            int perSize_50_50 = systemInfoService.countByParams(params);
-            double e = 0;
-            if (totalSystemInfoSize != 0) {
-                e = (double) perSize_50_50 / totalSystemInfoSize;
-            }
-            ChartInfo perSize_50_50_chart = new ChartInfo();
-            perSize_50_50_chart.setItem("CPU和内存<50%");
-            perSize_50_50_chart.setCount(perSize_50_50);
-            perSize_50_50_chart.setPercent(FormatUtil.formatDouble(e, 2));
-            chartInfoList.add(perSize_50_50_chart);
-            data.put("chartInfoList", chartInfoList);
-            params.clear();
-
-            params.put("cpuPer", 90);
-            int memPerSizeApp = appInfoService.countByParams(params);
-            data.put("memPerSizeApp", memPerSizeApp);
-            params.clear();
-
-            int logSize = logInfoService.countByParams(params);
-            data.put("logSize", logSize);
-
-            params.clear();
-            int dbTableSize = dbTableService.countByParams(params);
-            data.put("dbTableSize", dbTableSize);
-
-            Long dbTableSum = dbTableService.sumByParams(params);
-            data.put("dbTableSum", dbTableSum == null ? 0 : dbTableSum);
-
-            PageInfo pageInfoDbTableList = dbTableService.selectByParams(params, 1, 10);
-            data.put("dbTableList", pageInfoDbTableList.getList());
-
-            int dbInfoSize = dbInfoService.countByParams(params);
-            data.put("dbInfoSize", dbInfoSize);
-
-            int heathSize = heathMonitorService.countByParams(params);
-            data.put("heathSize", heathSize);
-            params.put("heathStatus", "200");
-            int heath200Size = heathMonitorService.countByParams(params);
-            data.put("heath200Size", heath200Size);
-            data.put("heatherrSize", (heathSize - heath200Size));
-
-
+//            int totalSystemInfoSize = systemInfoService.countByParams(params);
+//            data.put("totalSystemInfoSize", totalSystemInfoSize);
+//            int totalSizeApp = appInfoService.countByParams(params);
+//            data.put("totalSizeApp", totalSizeApp);
+//
+//            params.put("memPer", 90);
+//            int memPerSize_90 = systemInfoService.countByParams(params);
+//            double a = 0;
+//            if (totalSystemInfoSize != 0) {
+//                a = (double) memPerSize_90 / totalSystemInfoSize;
+//            }
+//            ChartInfo memPerSize_90_chart = new ChartInfo();
+//            memPerSize_90_chart.setItem("内存>90%");
+//            memPerSize_90_chart.setCount(memPerSize_90);
+//            memPerSize_90_chart.setPercent(FormatUtil.formatDouble(a, 2));
+//            chartInfoList.add(memPerSize_90_chart);
+//
+//            params.put("memPer", 50);
+//            params.put("memPerLe", 90);
+//            int memPerSize_50_90 = systemInfoService.countByParams(params);
+//            double b = 0;
+//            if (totalSystemInfoSize != 0) {
+//                b = (double) memPerSize_50_90 / totalSystemInfoSize;
+//            }
+//            ChartInfo memPerSize_50_90_chart = new ChartInfo();
+//            memPerSize_50_90_chart.setItem("内存>50%且<90%");
+//            memPerSize_50_90_chart.setCount(memPerSize_50_90);
+//            memPerSize_50_90_chart.setPercent(FormatUtil.formatDouble(b, 2));
+//            chartInfoList.add(memPerSize_50_90_chart);
+//            params.clear();
+//
+//            params.put("cpuPer", 90);
+//            int cpuPerSize_90 = systemInfoService.countByParams(params);
+//            double c = 0;
+//            if (totalSystemInfoSize != 0) {
+//                c = (double) cpuPerSize_90 / totalSystemInfoSize;
+//            }
+//            ChartInfo cpuPerSize_90_chart = new ChartInfo();
+//            cpuPerSize_90_chart.setItem("CPU>90%");
+//            cpuPerSize_90_chart.setCount(cpuPerSize_90);
+//            cpuPerSize_90_chart.setPercent(FormatUtil.formatDouble(c, 2));
+//            chartInfoList.add(cpuPerSize_90_chart);
+//            params.clear();
+//
+//            params.put("cpuPer", 90);
+//            params.put("memPer", 90);
+//            int perSize_90_90 = systemInfoService.countByParams(params);
+//            double d = 0;
+//            if (totalSystemInfoSize != 0) {
+//                d = (double) perSize_90_90 / totalSystemInfoSize;
+//            }
+//            ChartInfo perSize_90_90_chart = new ChartInfo();
+//            perSize_90_90_chart.setItem("CPU和内存>90%");
+//            perSize_90_90_chart.setCount(perSize_90_90);
+//            perSize_90_90_chart.setPercent(FormatUtil.formatDouble(d, 2));
+//            chartInfoList.add(perSize_90_90_chart);
+//            params.clear();
+//
+//            params.put("memPerLe", 50);
+//            params.put("cpuPerLe", 50);
+//            int perSize_50_50 = systemInfoService.countByParams(params);
+//            double e = 0;
+//            if (totalSystemInfoSize != 0) {
+//                e = (double) perSize_50_50 / totalSystemInfoSize;
+//            }
+//            ChartInfo perSize_50_50_chart = new ChartInfo();
+//            perSize_50_50_chart.setItem("CPU和内存<50%");
+//            perSize_50_50_chart.setCount(perSize_50_50);
+//            perSize_50_50_chart.setPercent(FormatUtil.formatDouble(e, 2));
+//            chartInfoList.add(perSize_50_50_chart);
+//            data.put("chartInfoList", chartInfoList);
+//            params.clear();
+//
+//            params.put("cpuPer", 90);
+//            int memPerSizeApp = appInfoService.countByParams(params);
+//            data.put("memPerSizeApp", memPerSizeApp);
+//            params.clear();
+//
+//            int logSize = logInfoService.countByParams(params);
+//            data.put("logSize", logSize);
+//
+//            params.clear();
+//            int dbTableSize = dbTableService.countByParams(params);
+//            data.put("dbTableSize", dbTableSize);
+//
+//            Long dbTableSum = dbTableService.sumByParams(params);
+//            data.put("dbTableSum", dbTableSum == null ? 0 : dbTableSum);
+//
+//            PageInfo pageInfoDbTableList = dbTableService.selectByParams(params, 1, 10);
+//            data.put("dbTableList", pageInfoDbTableList.getList());
+//
+//            int dbInfoSize = dbInfoService.countByParams(params);
+//            data.put("dbInfoSize", dbInfoSize);
+//
+//            int heathSize = heathMonitorService.countByParams(params);
+//            data.put("heathSize", heathSize);
+//            params.put("heathStatus", "200");
+//            int heath200Size = heathMonitorService.countByParams(params);
+//            data.put("heath200Size", heath200Size);
+//            data.put("heatherrSize", (heathSize - heath200Size));
             return AjaxResult.success(data);
         } catch (Exception e) {
             logger.error("主面板信息异常：", e);

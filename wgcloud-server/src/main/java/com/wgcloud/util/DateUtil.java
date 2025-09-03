@@ -24,6 +24,28 @@ public class DateUtil {
     private static final String DATE_PATTERN = "yyyy-MM-dd";
     private static final String DATETIME_PATTERN = "yyyy-MM-dd HH:mm:ss";
 
+    /**
+     * 时间单位枚举
+     */
+    public enum TimeUnit {
+        SECOND(Calendar.SECOND),
+        MINUTE(Calendar.MINUTE),
+        HOUR(Calendar.HOUR_OF_DAY),
+        DAY(Calendar.DATE),
+        MONTH(Calendar.MONTH),
+        YEAR(Calendar.YEAR);
+
+        private final int calendarField;
+
+        TimeUnit(int calendarField) {
+            this.calendarField = calendarField;
+        }
+
+        public int getCalendarField() {
+            return calendarField;
+        }
+    }
+
 
     /**
      * 获取当前时间
@@ -126,11 +148,76 @@ public class DateUtil {
         return getString(now.getTime(), DATETIME_PATTERN);
     }
 
+    /**
+     * 获取从当前时间开始偏移指定天数的日期
+     * @param day 偏移天数（正数表示未来，负数表示过去）
+     * @return 偏移后的日期时间字符串
+     */
+    public static String getDateBefore(int day) {
+        return getDateBefore(getCurrentDateTime(), day);
+    }
+
+    /**
+     * 获取从当前时间开始偏移指定时间单位的日期
+     * @param amount 偏移量（正数表示未来，负数表示过去）
+     * @param unit 时间单位
+     * @return 偏移后的日期时间字符串
+     */
+    public static String getDateBefore(int amount, TimeUnit unit) {
+        return getDateBefore(getCurrentDateTime(), amount, unit);
+    }
+
+    /**
+     * 获取从指定时间开始偏移指定时间单位的日期
+     * @param datetimes 基准时间字符串
+     * @param amount 偏移量（正数表示未来，负数表示过去）
+     * @param unit 时间单位
+     * @return 偏移后的日期时间字符串
+     */
+    public static String getDateBefore(String datetimes, int amount, TimeUnit unit) {
+        Calendar calendar = Calendar.getInstance();
+        try {
+            calendar.setTime(getDate(datetimes));
+        } catch (ParseException e) {
+            logger.error("时间格式 [ " + datetimes + " ] 无法被解析：" + e.toString());
+            return null;
+        }
+        
+        // 根据时间单位进行偏移
+        calendar.add(unit.getCalendarField(), -amount);
+        
+        return getString(calendar.getTime(), DATETIME_PATTERN);
+    }
+
     public static Date getBeforeDay(Date date, int day) {
         Calendar now = Calendar.getInstance();
         now.setTime(date);
         now.set(Calendar.DATE, now.get(Calendar.DATE) - day);
         return now.getTime();
+    }
+
+    /**
+     * 获取从指定日期开始偏移指定时间单位的日期
+     * @param date 基准日期
+     * @param amount 偏移量（正数表示未来，负数表示过去）
+     * @param unit 时间单位
+     * @return 偏移后的日期
+     */
+    public static Date getBeforeTime(Date date, int amount, TimeUnit unit) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.add(unit.getCalendarField(), -amount);
+        return calendar.getTime();
+    }
+
+    /**
+     * 获取从当前时间开始偏移指定时间单位的日期
+     * @param amount 偏移量（正数表示未来，负数表示过去）
+     * @param unit 时间单位
+     * @return 偏移后的日期
+     */
+    public static Date getBeforeTime(int amount, TimeUnit unit) {
+        return getBeforeTime(new Date(), amount, unit);
     }
 
     /**

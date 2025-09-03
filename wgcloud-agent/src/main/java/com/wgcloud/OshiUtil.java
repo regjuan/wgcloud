@@ -151,24 +151,24 @@ public class OshiUtil {
      * @return
      */
     public static AppState getLoadPid(String pid, OperatingSystem os, GlobalMemory memory) throws Exception {
-
-        try {
-            List<Integer> pidList = new ArrayList<>();
-            pidList.add(Integer.valueOf(pid));
-            List<OSProcess> procs = os.getProcesses(pidList);
-
-            for (int i = 0; i < procs.size() && i < 5; i++) {
-                OSProcess p = procs.get(i);
-
-                AppState appState = new AppState();
-                appState.setCpuPer(FormatUtil.formatDouble(100d * (p.getKernelTime() + p.getUserTime()) / p.getUpTime(), 2));
-                appState.setMemPer(FormatUtil.formatDouble(100d * p.getResidentSetSize() / memory.getTotal(), 2));
-                return appState;
-            }
-
-        } catch (Exception e) {
-            logger.error("获取进程信息错误", e);
-        }
+//            todo threadMon版本逻辑
+//        try {
+//            List<Integer> pidList = new ArrayList<>();
+//            pidList.add(Integer.valueOf(pid));
+//            List<OSProcess> procs = os.getProcesses(pidList);
+//
+//            for (int i = 0; i < procs.size() && i < 5; i++) {
+//                OSProcess p = procs.get(i);
+//
+//                AppState appState = new AppState();
+//                appState.setCpuPer(FormatUtil.formatDouble(100d * (p.getKernelTime() + p.getUserTime()) / p.getUpTime(), 2));
+//                appState.setMemPer(FormatUtil.formatDouble(100d * p.getResidentSetSize() / memory.getTotal(), 2));
+//                return appState;
+//            }
+//
+//        } catch (Exception e) {
+//            logger.error("获取进程信息错误", e);
+//        }
 
         return null;
     }
