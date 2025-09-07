@@ -74,8 +74,7 @@ public class ConnectionUtil {
         } catch (Exception e) {
             jdbcTemplate = null;
             logger.error("连接数据库错误", e);
-            logInfoService.save("连接数据库错误：" + dbInfo.getAliasName(), "IP：" + dbInfo.getIp() + "，端口：" + dbInfo.getPort() + "，数据库别名："
-                    + dbInfo.getAliasName() + "，错误信息：" + e.toString(), StaticKeys.LOG_ERROR);
+
             dbInfo.setDbState("2");
             dbInfoService.updateById(dbInfo);
         }
@@ -91,8 +90,7 @@ public class ConnectionUtil {
             return jdbcTemplate.queryForObject(sql, Long.class);
         } catch (Exception e) {
             logger.error("统计数据表错误：", e);
-            logInfoService.save("统计数据表错误：" + dbInfo.getAliasName(), "IP：" + dbInfo.getIp() + "，端口：" + dbInfo.getPort() + "，数据库别名："
-                    + dbInfo.getAliasName() + "，错误信息：" + e.toString(), StaticKeys.LOG_ERROR);
+
             return 0;
         }
     }

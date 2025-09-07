@@ -60,7 +60,7 @@ public class DbTableCountController {
             return AjaxResult.success(pageInfo);
         } catch (Exception e) {
             logger.error("查询数据源表统计信息错误", e);
-            logInfoService.save("查询数据源表统计信息错误", e.toString(), StaticKeys.LOG_ERROR);
+
             return AjaxResult.error("查询数据源表统计信息错误");
         }
     }
@@ -80,7 +80,7 @@ public class DbTableCountController {
             return AjaxResult.success();
         } catch (Exception e) {
             logger.error("保存数据源表统计错误：", e);
-            logInfoService.save("保存数据源表统计错误", e.toString(), StaticKeys.LOG_ERROR);
+
             return AjaxResult.error(e.getMessage());
         }
     }
@@ -103,7 +103,7 @@ public class DbTableCountController {
             return AjaxResult.success();
         } catch (Exception e) {
             logger.error(errorMsg, e);
-            logInfoService.save(errorMsg, e.toString(), StaticKeys.LOG_ERROR);
+
             return AjaxResult.error(e.getMessage());
         }
     }

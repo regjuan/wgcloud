@@ -54,7 +54,7 @@ public class HeathMonitorController {
             return AjaxResult.success(pageInfo);
         } catch (Exception e) {
             logger.error("查询服务心跳监控错误", e);
-            logInfoService.save("查询心跳监控错误", e.toString(), StaticKeys.LOG_ERROR);
+
             return AjaxResult.error("查询服务心跳监控错误");
         }
     }
@@ -78,7 +78,6 @@ public class HeathMonitorController {
             return AjaxResult.success();
         } catch (Exception e) {
             logger.error("保存服务心跳监控错误：", e);
-            logInfoService.save(HeathMonitor.getAppName(), "保存心跳监控错误：" + e.toString(), StaticKeys.LOG_ERROR);
             return AjaxResult.error(e.getMessage());
         }
     }
@@ -103,11 +102,6 @@ public class HeathMonitorController {
             return AjaxResult.success(heathMonitor);
         } catch (Exception e) {
             logger.error(errorMsg, e);
-            if(heathMonitor != null && heathMonitor.getAppName() != null) {
-                logInfoService.save(heathMonitor.getAppName(), errorMsg + e.toString(), StaticKeys.LOG_ERROR);
-            } else {
-                logInfoService.save(errorMsg, e.toString(), StaticKeys.LOG_ERROR);
-            }
             return AjaxResult.error("获取服务心跳监控错误");
         }
     }
@@ -148,9 +142,7 @@ public class HeathMonitorController {
             if (!StringUtils.isEmpty(id)) {
                 //批量删除时，日志仅记录第一个
                 HeathMonitor HeathMonitor = heathMonitorService.selectById(id.split(",")[0]);
-                if(HeathMonitor != null) {
-                    logInfoService.save("删除服务心跳监控：" + HeathMonitor.getAppName(), "删除服务心跳监控：" + HeathMonitor.getAppName() + "：", StaticKeys.LOG_ERROR);
-                }
+
                 heathMonitorService.deleteById(id.split(","));
             }
             return AjaxResult.success();

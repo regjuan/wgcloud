@@ -62,7 +62,6 @@ public class MailSetController {
             }
         } catch (Exception e) {
             logger.error("查询邮件设置错误", e);
-            logInfoService.save("查询邮件设置错误：", e.toString(), StaticKeys.LOG_ERROR);
             resultJson.put("error", e.getMessage());
         }
         return resultJson;
@@ -88,7 +87,6 @@ public class MailSetController {
             resultJson.put("result","success");
         } catch (Exception e) {
             logger.error("保存邮件设置信息错误：", e);
-            logInfoService.save("邮件设置信息错误", e.toString(), StaticKeys.LOG_ERROR);
             resultJson.put("result","error");
             resultJson.put("msg",e.getMessage());
         }
@@ -117,7 +115,6 @@ public class MailSetController {
             }
         } catch (Exception e) {
             logger.error("测试邮件设置信息错误：", e);
-            logInfoService.save("测试邮件设置信息错误", e.toString(), StaticKeys.LOG_ERROR);
             resultJson.put("result","error");
             resultJson.put("msg","测试发送失败，请查看日志");
         }
@@ -144,7 +141,7 @@ public class MailSetController {
             resultJson.put("result","success");
         } catch (Exception e) {
             logger.error(errorMsg, e);
-            logInfoService.save(errorMsg, e.toString(), StaticKeys.LOG_ERROR);
+
             resultJson.put("result","error");
             resultJson.put("msg",e.getMessage());
         }

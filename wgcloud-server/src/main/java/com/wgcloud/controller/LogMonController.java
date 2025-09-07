@@ -55,7 +55,7 @@ public class LogMonController {
             return AjaxResult.success(appInfoList);
         } catch (Exception e) {
             logger.error("agent获取日志监控任务信息错误", e);
-            logInfoService.save("agent获取日志监控任务信息错误", e.toString(), StaticKeys.LOG_ERROR);
+
             return AjaxResult.error("agent获取日志监控任务信息错误");
         }
     }
@@ -77,7 +77,7 @@ public class LogMonController {
             return AjaxResult.success(statusList);
         } catch (Exception e) {
             logger.error("获取主机日志监控状态错误", e);
-            logInfoService.save("获取主机日志监控状态错误", e.toString(), StaticKeys.LOG_ERROR);
+
             return AjaxResult.error(e.getMessage());
         }
     }
@@ -110,7 +110,7 @@ public class LogMonController {
             return AjaxResult.success(pageInfo);
         } catch (Exception e) {
             logger.error("查询日志监控明细错误", e);
-            logInfoService.save("查询日志监控明细错误", e.toString(), StaticKeys.LOG_ERROR);
+
             return AjaxResult.error(e.getMessage());
         }
     }
@@ -131,7 +131,7 @@ public class LogMonController {
             return AjaxResult.success(data);
         } catch (Exception e) {
             logger.error("查询日志监控任务信息错误", e);
-            logInfoService.save("查询日志监控任务信息错误", e.toString(), StaticKeys.LOG_ERROR);
+
             return AjaxResult.error(e.getMessage());
         }
     }
@@ -148,7 +148,7 @@ public class LogMonController {
             return AjaxResult.success();
         } catch (Exception e) {
             logger.error("保存日志监控任务错误：", e);
-            logInfoService.save("保存日志监控任务错误", e.toString(), StaticKeys.LOG_ERROR);
+
             return AjaxResult.error(e.getMessage());
         }
     }
@@ -165,7 +165,7 @@ public class LogMonController {
             return AjaxResult.success(logMon);
         } catch (Exception e) {
             logger.error("编辑日志监控任务信息错误", e);
-            logInfoService.save("编辑日志监控任务信息错误", e.toString(), StaticKeys.LOG_ERROR);
+
             return AjaxResult.error(e.getMessage());
         }
     }
@@ -176,13 +176,13 @@ public class LogMonController {
         String errorMsg = "删除日志监控任务错误：";
         try {
             if (!StringUtils.isEmpty(id)) {
-                logInfoService.save("删除日志监控任务", "删除日志监控任务：" + id, StaticKeys.LOG_ERROR);
+
                 logMonService.deleteById(id.split(","));
             }
             return AjaxResult.success();
         } catch (Exception e) {
             logger.error(errorMsg, e);
-            logInfoService.save(errorMsg, e.toString(), StaticKeys.LOG_ERROR);
+
             return AjaxResult.error(e.getMessage());
         }
     }

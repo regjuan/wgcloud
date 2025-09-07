@@ -454,32 +454,7 @@ public class ScheduledTask {
                 systemInfoService.saveRecord(insertList);
             }
 //            todo threadMon 逻辑逻辑下的 信息入库
-//            if (BatchData.APP_INFO_LIST.size() > 0) {
-//                Map<String, Object> paramsDel = new HashMap<String, Object>();
-//                List<AppInfo> APP_INFO_LIST = new ArrayList<AppInfo>();
-//                APP_INFO_LIST.addAll(BatchData.APP_INFO_LIST);
-//                BatchData.APP_INFO_LIST.clear();
-//
-//                List<AppInfo> updateList = new ArrayList<AppInfo>();
-//                List<AppInfo> insertList = new ArrayList<AppInfo>();
-//                List<AppInfo> savedList = appInfoService.selectAllByParams(paramsDel);
-//                for (AppInfo systemInfo : APP_INFO_LIST) {
-//                    boolean issaved = false;
-//                    for (AppInfo systemInfoS : savedList) {
-//                        if (systemInfoS.getHostname().equals(systemInfo.getHostname()) && systemInfoS.getAppPid().equals(systemInfo.getAppPid())) {
-//                            systemInfo.setId(systemInfoS.getId());
-//                            updateList.add(systemInfo);
-//                            issaved = true;
-//                            break;
-//                        }
-//                    }
-//                    if (!issaved) {
-//                        insertList.add(systemInfo);
-//                    }
-//                }
-//                appInfoService.updateRecord(updateList);
-//                appInfoService.saveRecord(insertList);
-//            }
+
         } catch (Exception e) {
             // TODO Auto-generated catch block
             logger.error("批量提交监控数据错误----------", e);
@@ -522,7 +497,7 @@ public class ScheduledTask {
                 //删除15天前数据库表统计信息
                 dbTableCountService.deleteByDate(paramsDel);
 
-                logInfoService.save("定时清空历史数据完成", "定时清空历史数据完成：", StaticKeys.LOG_ERROR);
+
             }
             //执行删除操作end
 

@@ -67,7 +67,7 @@ public class DbInfoController {
             }
         } catch (Exception e) {
             logger.error("测试数据源信息错误", e);
-            logInfoService.save("测试数据源信息错误", e.toString(), StaticKeys.LOG_ERROR);
+
             return AjaxResult.error("测试数据源连接错误");
         }
     }
@@ -87,7 +87,7 @@ public class DbInfoController {
             return AjaxResult.success(pageInfo);
         } catch (Exception e) {
             logger.error("查询数据源信息错误", e);
-            logInfoService.save("查询数据源信息错误", e.toString(), StaticKeys.LOG_ERROR);
+
             return AjaxResult.error("查询数据源信息错误");
         }
     }
@@ -112,11 +112,6 @@ public class DbInfoController {
             return AjaxResult.success(dbInfo);
         } catch (Exception e) {
             logger.error(errorMsg, e);
-            if(dbInfo != null && !StringUtils.isEmpty(dbInfo.getDbName())) {
-                logInfoService.save(dbInfo.getDbName(), errorMsg + e.toString(), StaticKeys.LOG_ERROR);
-            } else {
-                logInfoService.save(errorMsg, e.toString(), StaticKeys.LOG_ERROR);
-            }
             return AjaxResult.error("获取数据源信息错误");
         }
     }
@@ -140,7 +135,7 @@ public class DbInfoController {
             return AjaxResult.success();
         } catch (Exception e) {
             logger.error("保存数据源错误：", e);
-            logInfoService.save("保存数据源错误", e.toString(), StaticKeys.LOG_ERROR);
+
             return AjaxResult.error(e.getMessage());
         }
     }
@@ -161,8 +156,7 @@ public class DbInfoController {
                 //批量删除时，日志仅记录第一个
                 DbInfo DbInfo = dbInfoService.selectById(id.split(",")[0]);
                 if(DbInfo != null) {
-                    logInfoService.save("删除数据源：" + DbInfo.getAliasName(), "删除数据源：" + DbInfo.getIp() + "：" + DbInfo.getPort() +
-                            "，数据库别名" + DbInfo.getAliasName(), StaticKeys.LOG_ERROR);
+
                     dbTableService.deleteByDbInfoId(DbInfo.getId());
                 }
                 dbInfoService.deleteById(id.split(","));
@@ -170,7 +164,7 @@ public class DbInfoController {
             return AjaxResult.success();
         } catch (Exception e) {
             logger.error(errorMsg, e);
-            logInfoService.save(errorMsg, e.toString(), StaticKeys.LOG_ERROR);
+
             return AjaxResult.error(e.getMessage());
         }
     }

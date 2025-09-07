@@ -186,7 +186,7 @@ public class DashboardCotroller {
             return AjaxResult.success(data);
         } catch (Exception e) {
             logger.error("主面板信息异常：", e);
-            logInfoService.save("dash/main", "主面板信息错误：" + e.toString(), StaticKeys.LOG_ERROR);
+
             return AjaxResult.error("主面板信息获取失败");
         }
     }
@@ -250,7 +250,6 @@ public class DashboardCotroller {
             return AjaxResult.success(pageInfo);
         } catch (Exception e) {
             logger.error("查询服务器列表错误：", e);
-            logInfoService.save("查询服务器列表错误", e.toString(), StaticKeys.LOG_ERROR);
             return AjaxResult.error("查询服务器列表错误");
         }
     }
@@ -284,7 +283,7 @@ public class DashboardCotroller {
             return AjaxResult.success(data);
         } catch (Exception e) {
             logger.error("服务器详细信息错误：", e);
-            logInfoService.save(hostname, "查看服务器详细信息错误", e.toString());
+
             return AjaxResult.error("获取服务器详细信息错误");
         }
     }
@@ -310,14 +309,14 @@ public class DashboardCotroller {
                     if (!StringUtils.isEmpty(sys.getHostname())) {
                         hostInfoService.deleteByIp(sys.getHostname().split(","));
                     }
-                    logInfoService.save("删除主机：" + sys.getHostname(), sys.getHostname(), StaticKeys.LOG_ERROR);
+
                 }
                 systemInfoService.deleteById(ids);
             }
             return AjaxResult.success();
         } catch (Exception e) {
             logger.error(errorMsg, e);
-            logInfoService.save(errorMsg, e.toString(), StaticKeys.LOG_ERROR);
+
             return AjaxResult.error(e.getMessage());
         }
     }
@@ -370,7 +369,7 @@ public class DashboardCotroller {
             return AjaxResult.success(data);
         } catch (Exception e) {
             logger.error("服务器图形报表错误：", e);
-            logInfoService.save(hostname, "图形报表错误", e.toString());
+
             return AjaxResult.error("获取服务器图形报表错误");
         }
     }

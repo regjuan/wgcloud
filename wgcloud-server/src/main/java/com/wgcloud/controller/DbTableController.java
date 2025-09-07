@@ -76,7 +76,7 @@ public class DbTableController {
             resultJson.put("page", pageInfo);
         } catch (Exception e) {
             logger.error("查询数据表信息错误", e);
-            logInfoService.save("查询数据表信息错误", e.toString(), StaticKeys.LOG_ERROR);
+
             resultJson.put("error", e.getMessage());
         }
         return resultJson;
@@ -113,7 +113,6 @@ public class DbTableController {
             resultJson.put("result","success");
         } catch (Exception e) {
             logger.error("保存数据表错误：", e);
-            logInfoService.save("保存数据表错误", e.toString(), StaticKeys.LOG_ERROR);
             resultJson.put("result","error");
             resultJson.put("msg",e.getMessage());
         }
@@ -142,7 +141,6 @@ public class DbTableController {
             resultJson.put("dbTable", dbTableInfo);
         } catch (Exception e) {
             logger.error("查看数据表错误：", e);
-            logInfoService.save("查看数据表错误", e.toString(), StaticKeys.LOG_ERROR);
             resultJson.put("error", e.getMessage());
         }
         return resultJson;
@@ -174,7 +172,7 @@ public class DbTableController {
             }
         } catch (Exception e) {
             logger.error("查看数据表图表统计错误：", e);
-            logInfoService.save("查看数据表图表统计错误", e.toString(), StaticKeys.LOG_ERROR);
+
             resultJson.put("error", e.getMessage());
         }
         return resultJson;
@@ -197,15 +195,13 @@ public class DbTableController {
             if (!StringUtils.isEmpty(id)) {
                 //批量删除时，日志仅记录第一个
                 DbTable dbTable = dbTableService.selectById(id.split(",")[0]);
-                if(dbTable != null) {
-                    logInfoService.save("删除数据表：" + dbTable.getTableName(), "删除数据表：" + dbTable.getTableName(), StaticKeys.LOG_ERROR);
-                }
+
                 dbTableService.deleteById(id.split(","));
             }
             resultJson.put("result","success");
         } catch (Exception e) {
             logger.error(errorMsg, e);
-            logInfoService.save(errorMsg, e.toString(), StaticKeys.LOG_ERROR);
+
             resultJson.put("result","error");
             resultJson.put("msg",e.getMessage());
         }

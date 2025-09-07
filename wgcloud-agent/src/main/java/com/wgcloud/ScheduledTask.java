@@ -46,7 +46,8 @@ public class ScheduledTask {
      * 同步日志监控任务
      * 开启日志处理线程
      */
-    @Scheduled(initialDelay = 60 * 1000L, fixedRate = 60 * 1000)
+    // wgcloud-gemini-disabled-for-test
+    // @Scheduled(initialDelay = 60 * 1000L, fixedRate = 60 * 1000)
     public void logMonSchedule(){
         try {
             // 1. 获取本机标签
@@ -77,28 +78,11 @@ public class ScheduledTask {
      * 1分钟后执行，每隔60秒执行, 单位：ms。
      * 同步线程监控任务
      */
-    @Scheduled(initialDelay = 60 * 1000L, fixedRate = 60 * 1000)
+    @Scheduled(initialDelay = 15 * 1000L, fixedRate = 15 * 1000)
     public void threadMonSchedule(){
         try {
-            // 1. 获取本机标签
-            JSONObject paramsJson = new JSONObject();
-            paramsJson.put("hostname", commonConfig.getBindIp());
-            String tagsResult = restUtil.post(commonConfig.getServerUrl() + "/wgcloud/agent/tags", paramsJson);
-            if(StringUtils.isEmpty(tagsResult)){
-                logger.warn("Could not get tags for this agent, thread monitoring will be skipped.");
-                return;
-            }
-            JSONObject responseJson = JSONUtil.parseObj(tagsResult);
-            JSONArray dataArray = responseJson.getJSONArray("data");
-            List<String> agentTags = JSONUtil.toList(dataArray, String.class);
-            if(agentTags.isEmpty()){
-                return;
-            }
-
-            // 2. 执行同步逻辑
-            ThreadMonTask threadMonTask = new ThreadMonTask(agentTags, restUtil, commonConfig);
+            ThreadMonTask threadMonTask = new ThreadMonTask(restUtil, commonConfig);
             threadMonTask.syncThreadMonTasks();
-
         } catch (Exception e) {
             logger.error("Error in threadMonSchedule", e);
         }
@@ -106,7 +90,7 @@ public class ScheduledTask {
 
 
 //    核心上报
-    @Scheduled(initialDelay = 59 * 1000L, fixedRate = 60 * 1000)
+    @Scheduled(initialDelay = 10 * 1000L, fixedRate = 10 * 1000)
     public void minTask() {
         JSONObject jsonObject = new JSONObject();
         LogInfo logInfo = new LogInfo();
@@ -218,7 +202,8 @@ public class ScheduledTask {
      * 20秒后执行，每隔1分钟执行, 单位：ms。
      * 获取预案 - 指令任务并执行
      */
-    @Scheduled(initialDelay = 20 * 1000L, fixedRate = 60 * 1000)
+    // wgcloud-gemini-disabled-for-test
+    // @Scheduled(initialDelay = 20 * 1000L, fixedRate = 60 * 1000)
     public void commandTaskExecutor() {
         try {
             //1. 获取任务列表

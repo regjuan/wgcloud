@@ -55,7 +55,7 @@ public class HostInfoController {
              return AjaxResult.success();
         } catch (Exception e) {
             logger.error("保存主机备注信息错误：", e);
-            logInfoService.save(systemInfo.getHostname(), "保存主机备注信息错误：" + e.toString(), StaticKeys.LOG_ERROR);
+
             return AjaxResult.error(e.getMessage());
         }
     }
