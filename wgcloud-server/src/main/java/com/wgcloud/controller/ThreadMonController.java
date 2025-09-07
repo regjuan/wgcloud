@@ -5,8 +5,10 @@ import cn.hutool.json.JSONUtil;
 import com.github.pagehelper.PageInfo;
 import com.wgcloud.common.AjaxResult;
 import com.wgcloud.entity.ThreadMon;
+import com.wgcloud.entity.ThreadMonDetail;
 import com.wgcloud.entity.ThreadState;
 import com.wgcloud.service.LogInfoService;
+import com.wgcloud.service.ThreadMonDetailService;
 import com.wgcloud.service.ThreadMonService;
 import com.wgcloud.service.ThreadStateService;
 import com.wgcloud.util.DateUtil;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +41,35 @@ public class ThreadMonController {
     private LogInfoService logInfoService;
     @Autowired
     private TokenUtils tokenUtils;
+    @Autowired
+    private ThreadMonDetailService threadMonDetailService;
+
+    @ResponseBody
+    @RequestMapping(value = "/agentTasksByHost")
+    public AjaxResult agentTasksByHost(@RequestBody String paramBean) {
+        JSONObject agentJsonObject = (JSONObject) JSONUtil.parse(paramBean);
+        if (!tokenUtils.checkAgentToken(agentJsonObject)) {
+            logger.error("token is invalidate");
+            return AjaxResult.error("token is invalidate");
+        }
+        Map<String, Object> params = new HashMap<>();
+        if (null != agentJsonObject.get("hostname")) {
+            params.put("hostname", agentJsonObject.get("hostname"));
+        }
+        try {
+            List<ThreadMonDetail> detailList = threadMonDetailService.selectByParams(params);
+            if (detailList.isEmpty()) {
+                return AjaxResult.success(new ArrayList<>());
+            }
+            List<String> ids = detailList.stream().map(ThreadMonDetail::getThreadMonId).collect(java.util.stream.Collectors.toList());
+            List<ThreadMon> threadMonList = threadMonService.selectByIds(ids);
+            return AjaxResult.success(threadMonList);
+        } catch (Exception e) {
+            logger.error("agent获取线程监控任务信息错误", e);
+            logInfoService.save("agent获取线程监控任务信息错误", e.toString(), StaticKeys.LOG_ERROR);
+            return AjaxResult.error("agent获取线程监控任务信息错误");
+        }
+    }
 
     @ResponseBody
     @RequestMapping(value = "/agentList")
@@ -56,7 +88,6 @@ public class ThreadMonController {
             return AjaxResult.success(threadMonList);
         } catch (Exception e) {
             logger.error("agent获取线程监控任务信息错误", e);
-            logInfoService.save("agent获取线程监控任务信息错误", e.toString(), StaticKeys.LOG_ERROR);
             return AjaxResult.error("agent获取线程监控任务信息错误");
         }
     }
@@ -73,7 +104,6 @@ public class ThreadMonController {
             return AjaxResult.success(pageInfo);
         } catch (Exception e) {
             logger.error("查询线程监控任务信息错误", e);
-            logInfoService.save("查询线程监控任务信息错误", e.toString(), StaticKeys.LOG_ERROR);
             return AjaxResult.error(e.getMessage());
         }
     }
@@ -90,7 +120,6 @@ public class ThreadMonController {
             return AjaxResult.success();
         } catch (Exception e) {
             logger.error("保存线程监控任务错误：", e);
-            logInfoService.save("保存线程监控任务错误", e.toString(), StaticKeys.LOG_ERROR);
             return AjaxResult.error(e.getMessage());
         }
     }
@@ -107,7 +136,6 @@ public class ThreadMonController {
             return AjaxResult.success(threadMon);
         } catch (Exception e) {
             logger.error("编辑线程监控任务信息错误", e);
-            logInfoService.save("编辑线程监控任务信息错误", e.toString(), StaticKeys.LOG_ERROR);
             return AjaxResult.error(e.getMessage());
         }
     }
@@ -117,36 +145,38 @@ public class ThreadMonController {
     public AjaxResult del(@PathVariable("id") String id) {
         try {
             if (!StringUtils.isEmpty(id)) {
-                logInfoService.save("删除线程监控任务", "删除线程监控任务：" + id, StaticKeys.LOG_ERROR);
+
                 threadMonService.deleteById(id.split(","));
             }
             return AjaxResult.success();
         } catch (Exception e) {
             logger.error("删除线程监控任务错误", e);
-            logInfoService.save("删除线程监控任务错误", e.toString(), StaticKeys.LOG_ERROR);
             return AjaxResult.error(e.getMessage());
         }
     }
 
     @ResponseBody
-    @RequestMapping("/view")
-    public AjaxResult viewChart(HttpServletRequest request) {
-        String id = request.getParameter("id");
-        String date = request.getParameter("date");
+    @RequestMapping("/detail/list")
+    public AjaxResult detailList(ThreadMonDetail threadMonDetail, HttpServletRequest request) {
+        Map<String, Object> params = new HashMap<>();
         try {
-            Map<String, Object> params = new HashMap<>();
-            if (StringUtils.isEmpty(date)) {
-                date = DateUtil.getCurrentDate();
+            if (!StringUtils.isEmpty(threadMonDetail.getHostname())) {
+                params.put("hostname", threadMonDetail.getHostname().trim());
             }
-            params.put("startTime", date + " 00:00:00");
-            params.put("endTime", date + " 23:59:59");
-            params.put("threadMonId", id);
-            List<ThreadState> threadStateList = threadStateService.selectAllByParams(params);
-            return AjaxResult.success(threadStateList);
+            if (!StringUtils.isEmpty(threadMonDetail.getThreadMonId())) {
+                params.put("threadMonId", threadMonDetail.getThreadMonId());
+            }
+            String tagId = request.getParameter("tagId");
+            if (!StringUtils.isEmpty(tagId)) {
+                params.put("tagId", tagId);
+            }
+            PageInfo<ThreadMonDetail> pageInfo = threadMonDetailService.selectByParams(params, threadMonDetail.getPage(), threadMonDetail.getPageSize());
+            return AjaxResult.success(pageInfo);
         } catch (Exception e) {
-            logger.error("查看线程监控统计图错误", e);
-            logInfoService.save("查看线程监控统计图错误", e.toString(), StaticKeys.LOG_ERROR);
+            logger.error("查询线程监控任务详情错误", e);
+            logInfoService.save("查询线程监控任务详情错误", e.toString(), StaticKeys.LOG_ERROR);
             return AjaxResult.error(e.getMessage());
         }
     }
+
 }

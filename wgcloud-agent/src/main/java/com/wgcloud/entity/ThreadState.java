@@ -1,14 +1,18 @@
 package com.wgcloud.entity;
 
+
 import com.wgcloud.DateUtil;
+import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Date;
 
+@Data
 public class ThreadState extends BaseEntity {
 
     private static final long serialVersionUID = -2913111613773445951L;
 
+    private String hostname;
     /**
      * 线程监控任务ID
      */
@@ -49,53 +53,6 @@ public class ThreadState extends BaseEntity {
      */
     private Date createTime;
 
-    public String getThreadMonId() {
-        return threadMonId;
-    }
-
-    public void setThreadMonId(String threadMonId) {
-        this.threadMonId = threadMonId;
-    }
-
-    public Integer getTotalThreads() {
-        return totalThreads;
-    }
-
-    public void setTotalThreads(Integer totalThreads) {
-        this.totalThreads = totalThreads;
-    }
-
-    public Integer getRunnableThreads() {
-        return runnableThreads;
-    }
-
-    public void setRunnableThreads(Integer runnableThreads) {
-        this.runnableThreads = runnableThreads;
-    }
-
-    public Integer getBlockedThreads() {
-        return blockedThreads;
-    }
-
-    public void setBlockedThreads(Integer blockedThreads) {
-        this.blockedThreads = blockedThreads;
-    }
-
-    public Integer getWaitingThreads() {
-        return waitingThreads;
-    }
-
-    public void setWaitingThreads(Integer waitingThreads) {
-        this.waitingThreads = waitingThreads;
-    }
-
-    public Integer getTimedWaitingThreads() {
-        return timedWaitingThreads;
-    }
-
-    public void setTimedWaitingThreads(Integer timedWaitingThreads) {
-        this.timedWaitingThreads = timedWaitingThreads;
-    }
 
     public String getDateStr() {
         String str = DateUtil.getDateTimeString(createTime);
@@ -109,11 +66,5 @@ public class ThreadState extends BaseEntity {
         this.dateStr = dateStr;
     }
 
-    public Date getCreateTime() {
-        return createTime;
-    }
 
-    public void setCreateTime(Date createTime) {
-        this.createTime = createTime;
-    }
 }

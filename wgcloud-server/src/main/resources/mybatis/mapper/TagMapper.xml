@@ -50,6 +50,12 @@
         FROM TAG WHERE ID = #{id}
     </select>
 
+    <select id="selectByName" parameterType="java.lang.String" resultMap="resultMap">
+        SELECT
+        <include refid="tableColumnList" />
+        FROM TAG WHERE TAG_NAME = #{tagName}
+    </select>
+
     <insert id="save" parameterType="com.wgcloud.entity.Tag">
         INSERT INTO TAG (ID, TAG_NAME, TAG_DESC, TAG_COLOR, LOG_PATH, CREATE_TIME)
         VALUES (#{id}, #{tagName}, #{tagDesc}, #{tagColor}, #{logPath}, #{createTime})

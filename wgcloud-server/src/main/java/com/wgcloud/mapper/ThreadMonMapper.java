@@ -23,4 +23,6 @@ public interface ThreadMonMapper {
 
     int updateById(ThreadMon ThreadMon) throws Exception;
 
+    List<ThreadMon> selectByIds(Map<String, Object> map) throws Exception;
+
 }

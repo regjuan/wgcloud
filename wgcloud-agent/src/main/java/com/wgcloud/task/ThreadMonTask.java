@@ -22,11 +22,9 @@ public class ThreadMonTask {
     private static final Logger logger = LoggerFactory.getLogger(ThreadMonTask.class);
 
     private final RestUtil restUtil;
-    private final List<String> agentTags;
     private final CommonConfig commonConfig;
 
-    public ThreadMonTask(List<String> agentTags, RestUtil restUtil, CommonConfig commonConfig) {
-        this.agentTags = agentTags;
+    public ThreadMonTask(RestUtil restUtil, CommonConfig commonConfig) {
         this.restUtil = restUtil;
         this.commonConfig = commonConfig;
     }
@@ -34,8 +32,8 @@ public class ThreadMonTask {
     public void syncThreadMonTasks() {
         try {
             Map<String, Object> params = new HashMap<>();
-            params.put("tags", agentTags);
-            String url = commonConfig.getServerUrl() + "/wgcloud/threadMon/agentList";
+            params.put("hostname", commonConfig.getBindIp());
+            String url = commonConfig.getServerUrl() + "/wgcloud/threadMon/agentTasksByHost";
             String result = restUtil.post(url, JSONUtil.parseObj(params));
             if (result == null) {
                 logger.error("Failed to get thread mon tasks from server, result is null");

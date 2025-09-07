@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 public interface TagMapper {
     List<Tag> selectByParams(Map<String, Object> params);
     Tag selectById(String id);
+    Tag selectByName(String tagName);
     void save(Tag tag);
     int updateById(Tag tag);
     int deleteById(String[] id);

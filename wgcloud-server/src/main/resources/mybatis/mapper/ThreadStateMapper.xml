@@ -3,6 +3,7 @@
 <mapper namespace="com.wgcloud.mapper.ThreadStateMapper">
     <resultMap id="resultMap" type="com.wgcloud.entity.ThreadState">
         <id column="ID" property="id" jdbcType="CHAR" />
+        <result column="HOSTNAME" property="hostname" jdbcType="VARCHAR" />
         <result column="THREAD_MON_ID" property="threadMonId" jdbcType="CHAR" />
         <result column="TOTAL_THREADS" property="totalThreads" jdbcType="INTEGER" />
         <result column="RUNNABLE_THREADS" property="runnableThreads" jdbcType="INTEGER" />
@@ -13,7 +14,7 @@
     </resultMap>
 
     <sql id="tableColumnList">
-        ID,THREAD_MON_ID,TOTAL_THREADS,RUNNABLE_THREADS,BLOCKED_THREADS,WAITING_THREADS,TIMED_WAITING_THREADS,CREATE_TIME
+        ID,HOSTNAME,THREAD_MON_ID,TOTAL_THREADS,RUNNABLE_THREADS,BLOCKED_THREADS,WAITING_THREADS,TIMED_WAITING_THREADS,CREATE_TIME
     </sql>
 
     <select id="selectById" resultMap="resultMap" parameterType="java.lang.String">
@@ -42,6 +43,7 @@
         INSERT INTO THREAD_STATE
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">ID,</if>
+            <if test="hostname != null">HOSTNAME,</if>
             <if test="threadMonId != null">THREAD_MON_ID,</if>
             <if test="totalThreads != null">TOTAL_THREADS,</if>
             <if test="runnableThreads != null">RUNNABLE_THREADS,</if>
@@ -52,6 +54,7 @@
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
+            <if test="hostname != null">#{hostname},</if>
             <if test="threadMonId != null">#{threadMonId},</if>
             <if test="totalThreads != null">#{totalThreads},</if>
             <if test="runnableThreads != null">#{runnableThreads},</if>
@@ -63,9 +66,9 @@
     </insert>
 
     <insert id="insertList" parameterType="java.util.List">
-        INSERT INTO THREAD_STATE (ID, THREAD_MON_ID, TOTAL_THREADS, RUNNABLE_THREADS, BLOCKED_THREADS, WAITING_THREADS, TIMED_WAITING_THREADS, CREATE_TIME) VALUES
+        INSERT INTO THREAD_STATE (ID, HOSTNAME, THREAD_MON_ID, TOTAL_THREADS, RUNNABLE_THREADS, BLOCKED_THREADS, WAITING_THREADS, TIMED_WAITING_THREADS, CREATE_TIME) VALUES
         <foreach collection="list" item="item" index="index" separator=",">
-            (#{item.id},#{item.threadMonId},#{item.hostname},#{item.totalThreads},#{item.runnableThreads},#{item.blockedThreads},#{item.waitingThreads},#{item.timedWaitingThreads},#{item.createTime})
+            (#{item.id},#{item.hostname},#{item.threadMonId},#{item.totalThreads},#{item.runnableThreads},#{item.blockedThreads},#{item.waitingThreads},#{item.timedWaitingThreads},#{item.createTime})
         </foreach>
     </insert>
 

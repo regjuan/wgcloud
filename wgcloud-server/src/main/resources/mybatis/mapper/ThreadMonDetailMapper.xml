@@ -17,17 +17,21 @@
 
     <select id="selectByParams" parameterType="map" resultMap="resultMap">
         SELECT
-        <include refid="tableColumnList" />
-        FROM THREAD_MON_DETAIL
+        DISTINCT tmd.ID, tmd.THREAD_MON_ID, tmd.HOSTNAME, tmd.PROCESS_KEYWORD, tmd.STATUS, tmd.LAST_HEARTBEAT, tmd.CREATE_TIME
+        FROM THREAD_MON_DETAIL tmd
+        LEFT JOIN TAG_RELATION tr ON tmd.THREAD_MON_ID = tr.RELATION_ID AND tr.RELATION_TYPE = 'THREAD_MON'
         <where>
             <if test="threadMonId != null">
-                <![CDATA[ AND THREAD_MON_ID = #{threadMonId} ]]>
+                <![CDATA[ AND tmd.THREAD_MON_ID = #{threadMonId} ]]>
             </if>
             <if test="hostname != null">
-                <![CDATA[ AND HOSTNAME = #{hostname} ]]>
+                <![CDATA[ AND tmd.HOSTNAME like CONCAT('%',#{hostname},'%') ]]>
             </if>
              <if test="status != null">
-                <![CDATA[ AND STATUS = #{status} ]]>
+                <![CDATA[ AND tmd.STATUS = #{status} ]]>
+            </if>
+            <if test="tagId != null and tagId != ''">
+                AND tr.TAG_ID = #{tagId}
             </if>
         </where>
     </select>

@@ -31,6 +31,10 @@ public class TagService {
         return tagMapper.selectById(id);
     }
 
+    public Tag selectByName(String tagName) throws Exception {
+        return tagMapper.selectByName(tagName);
+    }
+
     public void save(Tag Tag) throws Exception {
         Tag.setId(UUIDUtil.getUUID());
         Tag.setCreateTime(DateUtil.getNowTime());

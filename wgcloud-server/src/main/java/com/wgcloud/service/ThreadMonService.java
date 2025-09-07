@@ -3,10 +3,7 @@ package com.wgcloud.service;
 import cn.hutool.json.JSONUtil;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
-import com.wgcloud.entity.SystemInfo;
-import com.wgcloud.entity.TagRelation;
-import com.wgcloud.entity.ThreadMon;
-import com.wgcloud.entity.ThreadMonDetail;
+import com.wgcloud.entity.*;
 import com.wgcloud.mapper.SystemInfoMapper;
 import com.wgcloud.mapper.TagRelationMapper;
 import com.wgcloud.mapper.ThreadMonMapper;
@@ -37,6 +34,8 @@ public class ThreadMonService {
     private TagRelationMapper tagRelationMapper;
     @Autowired
     private SystemInfoMapper systemInfoMapper;
+    @Autowired
+    private TagService tagService;
 
 
     public PageInfo<ThreadMon> selectByParams(Map<String, Object> params, int currPage, int pageSize) throws Exception {
@@ -70,6 +69,9 @@ public class ThreadMonService {
 
     @Transactional
     public void save(ThreadMon threadMon) throws Exception {
+        if (CollectionUtils.isEmpty(threadMon.getTargetTagsList()) && !StringUtils.isEmpty(threadMon.getTargetTags())) {
+            threadMon.setTargetTagsList(JSONUtil.toList(threadMon.getTargetTags(), String.class));
+        }
         if (threadMon.getTargetTagsList() != null) {
             threadMon.setTargetTags(JSONUtil.toJsonStr(threadMon.getTargetTagsList()));
         }
@@ -79,14 +81,51 @@ public class ThreadMonService {
         threadMon.setId(UUIDUtil.getUUID());
         threadMon.setCreateTime(DateUtil.getNowTime());
         threadMonMapper.save(threadMon);
+
+        // Save tag relations
+        if (!CollectionUtils.isEmpty(threadMon.getTargetTagsList())) {
+            for (String tagId : threadMon.getTargetTagsList()) {
+                Tag tag = tagService.selectByName(tagId);
+
+                TagRelation tagRelation = new TagRelation();
+                tagRelation.setId(UUIDUtil.getUUID());
+                tagRelation.setRelationId(threadMon.getId());
+                tagRelation.setTagId(tag.getId());
+                tagRelation.setRelationType("THREAD_MON");
+                tagRelationMapper.save(tagRelation);
+            }
+        }
+
         updateThreadMonDetails(threadMon);
     }
 
     @Transactional
     public int updateById(ThreadMon threadMon) throws Exception {
+        if (CollectionUtils.isEmpty(threadMon.getTargetTagsList()) && !StringUtils.isEmpty(threadMon.getTargetTags())) {
+            threadMon.setTargetTagsList(JSONUtil.toList(threadMon.getTargetTags(), String.class));
+        }
         if (threadMon.getTargetTagsList() != null) {
             threadMon.setTargetTags(JSONUtil.toJsonStr(threadMon.getTargetTagsList()));
         }
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("relationId", threadMon.getId());
+        params.put("relationType", "THREAD_MON");
+        tagRelationMapper.deleteByRelationIdAndRelationType(params);
+
+        if (!CollectionUtils.isEmpty(threadMon.getTargetTagsList())) {
+            for (String tagId : threadMon.getTargetTagsList()) {
+
+                Tag tag = tagService.selectByName(tagId);
+                TagRelation tagRelation = new TagRelation();
+                tagRelation.setId(UUIDUtil.getUUID());
+                tagRelation.setRelationId(threadMon.getId());
+                tagRelation.setTagId(tag.getId());
+                tagRelation.setRelationType("THREAD_MON");
+                tagRelationMapper.save(tagRelation);
+            }
+        }
+
         updateThreadMonDetails(threadMon);
         return threadMonMapper.updateById(threadMon);
     }
@@ -98,7 +137,8 @@ public class ThreadMonService {
         }
         Map<String, Object> hostParams = new HashMap<>();
         hostParams.put("tags", threadMon.getTargetTagsList());
-        hostParams.put("state", "1");
+        hostParams.put("tagsSize", threadMon.getTargetTagsList().size());
+//        hostParams.put("state", "1");
         List<SystemInfo> hostInfos = systemInfoMapper.selectByParams(hostParams);
         if (CollectionUtils.isEmpty(hostInfos)) {
             return;
@@ -127,7 +167,17 @@ public class ThreadMonService {
     public int deleteById(String[] id) throws Exception {
         for (String s : id) {
             threadMonDetailService.deleteByThreadMonId(s);
+            Map<String, Object> params = new HashMap<>();
+            params.put("relationId", s);
+            params.put("relationType", "THREAD_MON");
+            tagRelationMapper.deleteByRelationIdAndRelationType(params);
         }
         return threadMonMapper.deleteById(id);
+    }
+
+    public List<ThreadMon> selectByIds(List<String> ids) throws Exception {
+        Map<String, Object> params = new HashMap<>();
+        params.put("ids", ids);
+        return threadMonMapper.selectByIds(params);
     }
 }
