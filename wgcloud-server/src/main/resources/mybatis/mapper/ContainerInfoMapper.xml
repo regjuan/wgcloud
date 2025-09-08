@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wgcloud.mapper.ContainerInfoMapper">
+    <resultMap id="resultMap" type="com.wgcloud.entity.ContainerInfo">
+        <id column="ID" property="id" jdbcType="CHAR" />
+        <result column="HOST_ID" property="hostId" jdbcType="CHAR" />
+        <result column="HOST_NAME" property="hostName" jdbcType="VARCHAR" />
+        <result column="CONTAINER_ID" property="containerId" jdbcType="VARCHAR" />
+        <result column="NAMES" property="names" jdbcType="VARCHAR" />
+        <result column="IMAGE" property="image" jdbcType="VARCHAR" />
+        <result column="STATE" property="state" jdbcType="VARCHAR" />
+        <result column="CPU_PER" property="cpuPer" jdbcType="DOUBLE" />
+        <result column="MEM_PER" property="memPer" jdbcType="DOUBLE" />
+        <result column="MEM_CACHE" property="memCache" jdbcType="VARCHAR" />
+        <result column="UPTIME" property="uptime" jdbcType="VARCHAR" />
+        <result column="ALERT_STATE" property="alertState" jdbcType="CHAR" />
+        <result column="LAST_HEARTBEAT" property="lastHeartbeat" jdbcType="TIMESTAMP" />
+    </resultMap>
+
+    <sql id="tableColumnList">
+        ID, HOST_ID, HOST_NAME, CONTAINER_ID, NAMES, IMAGE, STATE, CPU_PER, MEM_PER, MEM_CACHE, UPTIME, ALERT_STATE, LAST_HEARTBEAT
+    </sql>
+
+    <sql id="queryByParams">
+        <if test="hostId != null">
+            <![CDATA[ AND HOST_ID = #{hostId} ]]>
+        </if>
+        <if test="hostName != null and hostName != ''">
+            AND HOST_NAME like CONCAT('%',#{hostName},'%')
+        </if>
+    </sql>
+
+    <select id="selectById" resultMap="resultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="tableColumnList" />
+        FROM container_info WHERE ID=#{id}
+    </select>
+
+    <delete id="deleteByHostId" parameterType="java.lang.String">
+        DELETE FROM container_info WHERE HOST_ID = #{hostId}
+    </delete>
+
+    <delete id="deleteByHostIdAndContainerNames" parameterType="map">
+        DELETE FROM container_info WHERE HOST_ID = #{hostId}
+        <if test="namesList != null and namesList.size() > 0">
+            AND NAMES NOT IN
+            <foreach item="item" index="index" collection="namesList" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+    </delete>
+
+    <delete id="deleteById" parameterType="java.lang.String">
+        DELETE FROM container_info WHERE ID IN
+        <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <insert id="save" parameterType="com.wgcloud.entity.ContainerInfo">
+        INSERT INTO container_info (ID, HOST_ID, HOST_NAME, CONTAINER_ID, NAMES, IMAGE, STATE, CPU_PER, MEM_PER, MEM_CACHE, UPTIME, ALERT_STATE, LAST_HEARTBEAT)
+        VALUES (#{id}, #{hostId}, #{hostName}, #{containerId}, #{names}, #{image}, #{state}, #{cpuPer}, #{memPer}, #{memCache}, #{uptime}, '0', #{lastHeartbeat})
+        ON DUPLICATE KEY UPDATE
+            CONTAINER_ID = VALUES(CONTAINER_ID),
+            IMAGE = VALUES(IMAGE),
+            STATE = VALUES(STATE),
+            CPU_PER = VALUES(CPU_PER),
+            MEM_PER = VALUES(MEM_PER),
+            MEM_CACHE = VALUES(MEM_CACHE),
+            UPTIME = VALUES(UPTIME),
+            ALERT_STATE = '0',
+            LAST_HEARTBEAT = VALUES(LAST_HEARTBEAT);
+    </insert>
+
+    <insert id="saveList" parameterType="java.util.List" >
+        INSERT INTO container_info (ID, HOST_ID, HOST_NAME, CONTAINER_ID, NAMES, IMAGE, STATE, CPU_PER, MEM_PER, MEM_CACHE, UPTIME, ALERT_STATE, LAST_HEARTBEAT) VALUES
+        <foreach collection="list" item="item" index="index" separator="," >
+            (#{item.id}, #{item.hostId}, #{item.hostName}, #{item.containerId}, #{item.names}, #{item.image}, #{item.state}, #{item.cpuPer}, #{item.memPer}, #{item.memCache}, #{item.uptime}, '0', #{item.lastHeartbeat})
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+            CONTAINER_ID = VALUES(CONTAINER_ID),
+            IMAGE = VALUES(IMAGE),
+            STATE = VALUES(STATE),
+            CPU_PER = VALUES(CPU_PER),
+            MEM_PER = VALUES(MEM_PER),
+            MEM_CACHE = VALUES(MEM_CACHE),
+            UPTIME = VALUES(UPTIME),
+            ALERT_STATE = '0',
+            LAST_HEARTBEAT = VALUES(LAST_HEARTBEAT);
+    </insert>
+
+    <update id="updateById" parameterType="com.wgcloud.entity.ContainerInfo">
+        UPDATE container_info
+        <set>
+            <if test="hostId != null" >HOST_ID = #{hostId},</if>
+            <if test="hostName != null" >HOST_NAME = #{hostName},</if>
+            <if test="containerId != null" >CONTAINER_ID = #{containerId},</if>
+            <if test="names != null" >NAMES = #{names},</if>
+            <if test="image != null" >IMAGE = #{image},</if>
+            <if test="state != null" >STATE = #{state},</if>
+            <if test="cpuPer != null" >CPU_PER = #{cpuPer},</if>
+            <if test="memPer != null" >MEM_PER = #{memPer},</if>
+            <if test="memCache != null" >MEM_CACHE = #{memCache},</if>
+            <if test="uptime != null" >UPTIME = #{uptime},</if>
+            <if test="alertState != null" >ALERT_STATE = #{alertState},</if>
+            <if test="lastHeartbeat != null" >LAST_HEARTBEAT = #{lastHeartbeat}</if>
+        </set>
+        WHERE ID = #{id}
+    </update>
+
+    <select id="countByParams" parameterType="map"  resultType="java.lang.Integer">
+        SELECT count(*) FROM container_info
+        <where>
+            <include refid="queryByParams" />
+        </where>
+    </select>
+
+    <select id="selectByParams" parameterType="map" resultMap="resultMap">
+        SELECT
+        <include refid="tableColumnList" />
+        FROM container_info
+        <where>
+            <include refid="queryByParams" />
+        </where>
+        ORDER BY LAST_HEARTBEAT DESC
+    </select>
+
+    <select id="selectStaleByParams" parameterType="map" resultMap="resultMap">
+        SELECT
+        <include refid="tableColumnList" />
+        FROM container_info
+        WHERE ALERT_STATE = '0' AND LAST_HEARTBEAT &lt;= #{lastHeartbeat}
+    </select>
+
+    <update id="updateAlertState" parameterType="java.util.List" >
+        <foreach collection="list" item="item" index="index" separator=";" >
+            UPDATE container_info
+            SET
+            ALERT_STATE = '1'
+            WHERE ID = #{item.id}
+        </foreach>
+    </update>
+
+</mapper>

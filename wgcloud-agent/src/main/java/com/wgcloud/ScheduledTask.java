@@ -8,6 +8,7 @@ import com.wgcloud.entity.*;
 import com.wgcloud.task.BatchData;
 import com.wgcloud.task.LogMonTask;
 import com.wgcloud.task.ThreadMonTask;
+import com.wgcloud.util.DockerUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,8 +47,7 @@ public class ScheduledTask {
      * 同步日志监控任务
      * 开启日志处理线程
      */
-    // wgcloud-gemini-disabled-for-test
-    // @Scheduled(initialDelay = 60 * 1000L, fixedRate = 60 * 1000)
+     @Scheduled(initialDelay = 60 * 1000L, fixedRate = 60 * 1000)
     public void logMonSchedule(){
         try {
             // 1. 获取本机标签
@@ -78,7 +78,7 @@ public class ScheduledTask {
      * 1分钟后执行，每隔60秒执行, 单位：ms。
      * 同步线程监控任务
      */
-    @Scheduled(initialDelay = 15 * 1000L, fixedRate = 15 * 1000)
+    @Scheduled(initialDelay = 71 * 1000L, fixedRate = 60 * 1000)
     public void threadMonSchedule(){
         try {
             ThreadMonTask threadMonTask = new ThreadMonTask(restUtil, commonConfig);
@@ -90,7 +90,7 @@ public class ScheduledTask {
 
 
 //    核心上报
-    @Scheduled(initialDelay = 10 * 1000L, fixedRate = 10 * 1000)
+    @Scheduled(initialDelay = 60 * 1000L, fixedRate = 60 * 1000)
     public void minTask() {
         JSONObject jsonObject = new JSONObject();
         LogInfo logInfo = new LogInfo();
@@ -147,31 +147,6 @@ public class ScheduledTask {
             if (deskStateList != null) {
                 jsonObject.put("deskStateList", deskStateList);
             }
-//            todo threadMon版本逻辑
-//            if (!APP_INFO_LIST_CP.isEmpty()) {
-//                List<AppInfo> appInfoResList = new ArrayList<>();
-//                List<AppState> appStateResList = new ArrayList<>();
-//                for (AppInfo appInfo : APP_INFO_LIST_CP) {
-//                    appInfo.setHostname(commonConfig.getBindIp());
-//                    appInfo.setCreateTime(t);
-//                    appInfo.setState("1");
-//                    String pid = FormatUtil.getPidByFile(appInfo);
-//                    if (StringUtils.isEmpty(pid)) {
-//                        continue;
-//                    }
-//                    AppState appState = OshiUtil.getLoadPid(pid, os, hal.getMemory());
-//                    if (appState != null) {
-//                        appState.setCreateTime(t);
-//                        appState.setAppInfoId(appInfo.getId());
-//                        appInfo.setMemPer(appState.getMemPer());
-//                        appInfo.setCpuPer(appState.getCpuPer());
-//                        appInfoResList.add(appInfo);
-//                        appStateResList.add(appState);
-//                    }
-//                }
-//                jsonObject.put("appInfoList", appInfoResList);
-//                jsonObject.put("appStateList", appStateResList);
-//            }
 
             logger.debug("--------------- {}\n", jsonObject.toString());
         } catch (Exception e) {
@@ -198,12 +173,31 @@ public class ScheduledTask {
 
     }
 
+    /*
+    容器任务
+     */
+    @Scheduled(initialDelay = 70 * 1000L, fixedRate = 60 * 1000)
+    public void containerTask() {
+        try {
+            logger.info("container task start");
+            List<ContainerInfo> containerInfos = DockerUtil.getContainers();
+            if (containerInfos.isEmpty()) {
+                return;
+            }
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("hostname", commonConfig.getBindIp());
+            jsonObject.put("containerInfoList", containerInfos);
+            restUtil.post(commonConfig.getServerUrl() + "/wgcloud/agent/agentContainerInfo", jsonObject);
+        } catch (Exception e) {
+            logger.error("Failed to send container info", e);
+        }
+    }
+
     /**
      * 20秒后执行，每隔1分钟执行, 单位：ms。
      * 获取预案 - 指令任务并执行
      */
-    // wgcloud-gemini-disabled-for-test
-    // @Scheduled(initialDelay = 20 * 1000L, fixedRate = 60 * 1000)
+     @Scheduled(initialDelay = 20 * 1000L, fixedRate = 60 * 1000)
     public void commandTaskExecutor() {
         try {
             //1. 获取任务列表

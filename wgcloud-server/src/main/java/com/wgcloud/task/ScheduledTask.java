@@ -126,6 +126,8 @@ public class ScheduledTask {
     private ThreadStateService threadStateService;
     @Autowired
     private SystemInfoMapper systemInfoMapper;
+    @Autowired
+    private ContainerHeartbeatTask containerHeartbeatTask;
 
     /**
      * 20秒后执行
@@ -561,6 +563,17 @@ public class ScheduledTask {
         } catch (Exception e) {
             logger.error("清理过期任务时发生错误", e);
         }
+    }
+
+    /**
+     * 5分钟后执行，之后每隔5分钟执行
+     * 检测容器心跳
+     */
+    @Scheduled(initialDelay = 300000L, fixedRate = 5 * 60 * 1000)
+    public void containerHeartbeatCheckTask() {
+        logger.info("开始检测容器心跳");
+        containerHeartbeatTask.checkContainerHeartbeat();
+        logger.info("容器心跳检测结束");
     }
 
 }

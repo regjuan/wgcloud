@@ -54,6 +54,8 @@ public class AgentController {
     private CommandResultService commandResultService;
     @Autowired
     private CommandService commandService;
+    @Resource
+    private ContainerInfoService containerInfoService;
 
     @ResponseBody
     @RequestMapping("/minTask")
@@ -258,6 +260,52 @@ public class AgentController {
             resultJson.put("result", "success");
         } catch (Exception e) {
             logger.error("Agent上报指令执行结果错误", e);
+            resultJson.put("result", "error：" + e.toString());
+        }
+        return resultJson;
+    }
+
+
+    @ResponseBody
+    @RequestMapping("/agentContainerInfo")
+    public JSONObject agentContainerInfo(@RequestBody String paramBean) {
+        JSONObject agentJsonObject = (JSONObject) JSONUtil.parse(paramBean);
+        JSONObject resultJson = new JSONObject();
+        if (!tokenUtils.checkAgentToken(agentJsonObject)) {
+            logger.error("token is invalidate");
+            resultJson.put("result", "error：token is invalidate");
+            return resultJson;
+        }
+        try {
+            String hostname = agentJsonObject.getStr("hostname");
+            if (StringUtils.isEmpty(hostname)) {
+                resultJson.put("result", "error：hostname is empty");
+                return resultJson;
+            }
+            Map<String, Object> params = new HashMap<>();
+            params.put("hostname", hostname);
+            SystemInfo systemInfo = null;
+            PageInfo<SystemInfo> pageInfo = systemInfoService.selectByParams(params, 1, 1);
+            if (pageInfo.getList().size() > 0) {
+                systemInfo = pageInfo.getList().get(0);
+            }
+            if (systemInfo == null) {
+                resultJson.put("result", "error：can not find host by hostname " + hostname);
+                return resultJson;
+            }
+
+            JSONArray containerInfoList = agentJsonObject.getJSONArray("containerInfoList");
+            if (containerInfoList != null) {
+                List<ContainerInfo> containerInfos = JSONUtil.toList(containerInfoList, ContainerInfo.class);
+                for (ContainerInfo containerInfo : containerInfos) {
+                    containerInfo.setHostId(systemInfo.getId());
+                    containerInfo.setHostName(systemInfo.getHostname());
+                }
+                containerInfoService.saveRecord(containerInfos);
+            }
+            resultJson.put("result", "success");
+        } catch (Exception e) {
+            logger.error("Agent上报容器信息错误", e);
             resultJson.put("result", "error：" + e.toString());
         }
         return resultJson;

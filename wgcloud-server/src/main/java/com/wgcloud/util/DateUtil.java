@@ -82,7 +82,7 @@ public class DateUtil {
     /**
      * 获取当前系统时间.
      *
-     * @param strPattern 时间模板
+     * @param pattern 时间模板
      * @return 当前系统时间
      */
     public static String getCurrentDateTime(String pattern) {

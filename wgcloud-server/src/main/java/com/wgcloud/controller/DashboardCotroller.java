@@ -401,6 +401,50 @@ public class DashboardCotroller {
     }
 
 
+    /**
+     * 根据hostname获取服务器资源情况
+     *
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "resourceByHostname")
+    @ResponseBody
+    public AjaxResult resourceByHostname(HttpServletRequest request) {
+        String hostname = request.getParameter("hostname");
+        if (StringUtils.isEmpty(hostname)) {
+            return AjaxResult.error("hostname is null");
+        }
+        try {
+            Map<String, Object> data = new HashMap<>();
+            Map<String, Object> params = new HashMap<>();
+            params.put("hostname", hostname);
+
+            PageInfo<CpuState> cpuStatePageInfo = cpuStateService.selectByParams(params, 1, 1);
+            if (CollectionUtil.isNotEmpty(cpuStatePageInfo.getList())) {
+                data.put("cpuState", cpuStatePageInfo.getList().get(0));
+            }
+
+            PageInfo<MemState> memStatePageInfo = memStateService.selectByParams(params, 1, 1);
+            if (CollectionUtil.isNotEmpty(memStatePageInfo.getList())) {
+                data.put("memState", memStatePageInfo.getList().get(0));
+            }
+
+            PageInfo<NetIoState> netIoStatePageInfo = netIoStateService.selectByParams(params, 1, 1);
+            if (CollectionUtil.isNotEmpty(netIoStatePageInfo.getList())) {
+                data.put("netIoState", netIoStatePageInfo.getList().get(0));
+            }
+
+            List<DeskState> deskStateList = deskStateService.selectAllByParams(params);
+            data.put("deskStateList", deskStateList);
+
+            return AjaxResult.success(data);
+        } catch (Exception e) {
+            logger.error("获取服务器资源信息错误：", e);
+            return AjaxResult.error("获取服务器资源信息错误");
+        }
+    }
+
+
     private double findCpuMaxVal(List<CpuState> cpuStateList) {
         double maxval = 0;
         if (!CollectionUtil.isEmpty(cpuStateList)) {
